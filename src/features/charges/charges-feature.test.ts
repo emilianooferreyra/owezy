@@ -6,6 +6,7 @@ import {
   createChargesFeature,
   PaymentSimulationUnavailableError,
 } from "./charges-feature";
+import { InMemoryActivityLog } from "./infrastructure/in-memory-activity-log";
 import { InMemoryChargeRepository } from "./infrastructure/in-memory-charge-repository";
 import { SimulatedTransferSource } from "./infrastructure/simulated-transfer-source";
 
@@ -235,6 +236,40 @@ describe("charges feature", () => {
       await charges.createCharge(request);
 
       await expect(charges.simulatePayment("C-0001")).rejects.toThrow(PaymentSimulationUnavailableError);
+    });
+  });
+
+  describe("the agent's activity", () => {
+    function featureWithActivity() {
+      const activity = new InMemoryActivityLog();
+      const transfers = new SimulatedTransferSource({ now: () => PAID_AT });
+      const charges = createChargesFeature({
+        charges: new InMemoryChargeRepository(),
+        buildPaymentLink: fakeLink,
+        now: () => CREATED_AT,
+        simulator: transfers,
+        activity,
+      });
+      return { charges, transfers, activity };
+    }
+
+    it("records a simulated payment the agent reconciled", async () => {
+      const { charges, activity } = featureWithActivity();
+      await charges.createCharge(request);
+
+      await charges.simulatePayment("C-0001");
+
+      expect(await activity.list()).toMatchObject([{ kind: "payment-matched", chargeId: "C-0001" }]);
+    });
+
+    it("records what it finds when the owner asks for their charges", async () => {
+      const { charges, transfers, activity } = featureWithActivity();
+      await charges.createCharge(request);
+      await transfers.simulatePayment(fromDecimalString("85000", "wARS"));
+
+      await charges.listCharges({});
+
+      expect(await activity.list()).toMatchObject([{ kind: "payment-matched", chargeId: "C-0001" }]);
     });
   });
 });

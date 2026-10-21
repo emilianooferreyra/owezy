@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { InMemoryActivityLog } from "../infrastructure/in-memory-activity-log";
 import { InMemoryChargeRepository } from "../infrastructure/in-memory-charge-repository";
 import { SimulatedTransferSource } from "../infrastructure/simulated-transfer-source";
 import { aCharge, wars } from "../testing/fixtures";
@@ -79,5 +80,70 @@ describe("reconcilePayments use case", () => {
     const report = await reconcile();
 
     expect([...report.paid].sort()).toEqual(["C-0001", "C-0002"]);
+  });
+});
+
+describe("reconcilePayments use case, keeping the agent's activity", () => {
+  const NOW = new Date("2026-10-20T12:00:00.000Z");
+
+  async function setupWithActivity(...pending: Array<[id: string, units: bigint]>) {
+    const charges = new InMemoryChargeRepository();
+    for (const [id, units] of pending) {
+      await charges.save(aCharge({ id, customer: `Customer of ${id}`, amount: wars(units) }));
+    }
+    const transfers = new SimulatedTransferSource();
+    const activity = new InMemoryActivityLog();
+    const reconcile = reconcilePaymentsUseCase({ charges, transfers, activity, now: () => NOW });
+    return { transfers, activity, reconcile };
+  }
+
+  it("records who paid which charge, how much, and when the agent noticed", async () => {
+    const { transfers, activity, reconcile } = await setupWithActivity(["C-0007", 42_500n]);
+    const transfer = await transfers.simulatePayment(wars(42_500n));
+
+    await reconcile();
+
+    expect(await activity.list()).toEqual([
+      {
+        id: `payment-matched:${transfer.id}`,
+        kind: "payment-matched",
+        transferId: transfer.id,
+        amount: wars(42_500n),
+        receivedAt: transfer.receivedAt,
+        recordedAt: NOW.toISOString(),
+        chargeId: "C-0007",
+        customer: "Customer of C-0007",
+      },
+    ]);
+  });
+
+  it("records a payment that matches no charge, for the owner to look at", async () => {
+    const { transfers, activity, reconcile } = await setupWithActivity(["C-0007", 42_500n]);
+    const transfer = await transfers.simulatePayment(wars(12_000n));
+
+    await reconcile();
+
+    expect(await activity.list()).toMatchObject([{ kind: "payment-unmatched", transferId: transfer.id }]);
+  });
+
+  it("records the charges an ambiguous payment could pay, so the owner can decide", async () => {
+    const { transfers, activity, reconcile } = await setupWithActivity(["C-0001", 85_000n], ["C-0002", 85_000n]);
+    const transfer = await transfers.simulatePayment(wars(85_000n));
+
+    await reconcile();
+
+    expect(await activity.list()).toMatchObject([
+      { kind: "payment-ambiguous", transferId: transfer.id, chargeIds: ["C-0001", "C-0002"] },
+    ]);
+  });
+
+  it("records each event once, although an unmatched payment is reported on every run", async () => {
+    const { transfers, activity, reconcile } = await setupWithActivity(["C-0007", 42_500n]);
+    await transfers.simulatePayment(wars(12_000n));
+
+    await reconcile();
+    await reconcile();
+
+    expect(await activity.list()).toHaveLength(1);
   });
 });

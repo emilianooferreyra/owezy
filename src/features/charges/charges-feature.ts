@@ -1,6 +1,12 @@
 import { fromDecimalString, money, toDecimalString } from "../../core/money/money";
 import { createChargeUseCase } from "./application/create-charge";
-import type { ChargeRepository, PaymentLinkBuilder, PaymentSimulator, TransferSource } from "./application/ports";
+import type {
+  ActivityLog,
+  ChargeRepository,
+  PaymentLinkBuilder,
+  PaymentSimulator,
+  TransferSource,
+} from "./application/ports";
 import { type ReconciliationReport, reconcilePaymentsUseCase } from "./application/reconcile-payments";
 import { type Charge, type ChargeStatus, newestFirst } from "./domain/charge";
 
@@ -58,12 +64,24 @@ export function createChargesFeature(deps: {
   simulator?: PaymentSimulator;
   /** Where real transfers come from (the chain) in ripio mode. */
   transfers?: TransferSource;
+  /** Where every reconciliation leaves what it found, for the owner to see. */
+  activity?: ActivityLog;
 }) {
   const transfers = deps.transfers ?? deps.simulator;
+  const now = deps.now ?? (() => new Date());
+
+  function reconcileFrom(source: TransferSource) {
+    return reconcilePaymentsUseCase({
+      charges: deps.charges,
+      transfers: source,
+      now,
+      ...(deps.activity === undefined ? {} : { activity: deps.activity }),
+    })();
+  }
   const createCharge = createChargeUseCase({
     charges: deps.charges,
     buildPaymentLink: deps.buildPaymentLink,
-    now: deps.now ?? (() => new Date()),
+    now,
   });
 
   function toView(charge: Charge): ChargeView {
@@ -93,7 +111,7 @@ export function createChargesFeature(deps: {
     if (!transfers) {
       return { paid: [], unmatched: [], ambiguous: [] };
     }
-    return reconcilePaymentsUseCase({ charges: deps.charges, transfers })();
+    return reconcileFrom(transfers);
   }
 
   return {
@@ -155,7 +173,7 @@ export function createChargesFeature(deps: {
       }
 
       await simulator.simulatePayment(charge.amount);
-      const report = await reconcilePaymentsUseCase({ charges: deps.charges, transfers: simulator })();
+      const report = await reconcileFrom(simulator);
       const updated = await findOrFail(id);
       return { charge: toView(updated), outcome: report.paid.includes(id) ? "paid" : "ambiguous" };
     },

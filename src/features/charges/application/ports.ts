@@ -1,4 +1,5 @@
 import type { Money } from "../../../core/money/money";
+import type { ActivityEntry } from "../domain/activity";
 import type { Charge, IncomingTransfer } from "../domain/charge";
 
 export interface ChargeRepository {
@@ -6,6 +7,12 @@ export interface ChargeRepository {
   findByIdempotencyKey(key: string): Promise<Charge | undefined>;
   list(): Promise<readonly Charge[]>;
   save(charge: Charge): Promise<void>;
+}
+
+/** What the agent did on its own. Append-only: recording an entry whose id is already there keeps the first. */
+export interface ActivityLog {
+  record(entries: readonly ActivityEntry[]): Promise<void>;
+  list(): Promise<readonly ActivityEntry[]>;
 }
 
 /** Builds the link the payer opens to pay a charge. */

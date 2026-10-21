@@ -3,6 +3,7 @@ import { type ChargesFeature, createChargesFeature } from "./charges-feature";
 import { FileScanStore } from "./infrastructure/onchain/file-scan-store";
 import { OnchainTransferSource } from "./infrastructure/onchain/onchain-transfer-source";
 import { viemTransferLogReader } from "./infrastructure/onchain/viem-transfer-log-reader";
+import { FileActivityLog } from "./infrastructure/file-activity-log";
 import { FileChargeRepository } from "./infrastructure/file-charge-repository";
 import { FileSimulatedTransferSource } from "./infrastructure/file-simulated-transfer-source";
 import { ripioRampLinkBuilder } from "./infrastructure/ripio-ramp-link";
@@ -86,16 +87,19 @@ export function chargesConfigFromEnv(env: Env, cwd: string): ChargesConfig {
 /** Builds the feature with file storage, shared by the agent and the web app (separate processes). */
 export function chargesFeatureFromConfig(config: ChargesConfig): ChargesFeature {
   const charges = new FileChargeRepository(join(config.dataDir, "charges.json"));
+  const activity = new FileActivityLog(join(config.dataDir, "activity.json"));
 
   if (config.mode === "simulated") {
     return createChargesFeature({
       charges,
+      activity,
       buildPaymentLink: simulatedCheckoutLinkBuilder({ appUrl: config.appUrl }),
       simulator: new FileSimulatedTransferSource(join(config.dataDir, "simulated-transfers.json")),
     });
   }
   return createChargesFeature({
     charges,
+    activity,
     buildPaymentLink: ripioRampLinkBuilder({ recipient: config.recipient }),
     transfers: new OnchainTransferSource({
       reader: viemTransferLogReader({ recipient: config.recipient }),
