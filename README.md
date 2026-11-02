@@ -60,8 +60,8 @@ Some decisions worth calling out:
 - **Reconciliation never guesses.** The ramp link carries no order reference, so the amount is the only
   key. If two pending charges share an amount, the transfer is flagged as ambiguous for a person to
   assign, and a transfer only pays charges that existed when it arrived.
-- **Test mode is visible**, Stripe style: an orange strip across the app and a "Prueba" tag on every
-  simulated receipt, so a screenshot cannot pass for a real payment.
+- **Test mode is visible**, Stripe style: a "Prueba" tag on every simulated receipt, so a screenshot
+  cannot pass for a real payment.
 
 ## Getting started
 
@@ -69,7 +69,13 @@ Requirements: Node.js 24+ and pnpm.
 
 ```sh
 pnpm install
+pnpm typecheck    # needs no environment variables
+pnpm test         # needs no environment variables, keys or network
 ```
+
+Both run from a fresh clone with nothing else to set up. Running the app needs at least
+`GROQ_API_KEY`; everything else has a default or is only needed for the real payment mode and the
+agent wallet.
 
 Create `.env.local` (it is git-ignored):
 
@@ -82,6 +88,9 @@ Create `.env.local` (it is git-ignored):
 | `START_BLOCK` | no | With `ripio`: Celo block to start watching payments from. Default: the current block, so only new payments count |
 | `APP_URL` | no | Base URL for simulated payment links. Default `http://localhost:3000` |
 | `DATA_DIR` | no | Where local demo data is stored. Default `./.data` |
+| `AGENT_PRIVATE_KEY` | for the agent wallet | Key of the wallet that signs the agent's own transactions. Generate one with `node scripts/new-agent-key.ts` |
+| `CELO_NETWORK` | no | Network for the agent wallet: `sepolia` (default) or `mainnet` |
+| `AGENT_URI` | no | ERC-8004 registration file used by `scripts/register-agent.ts`. Default: `public/agent.json` on GitHub |
 
 ```sh
 pnpm dev          # web app and agent together, on http://localhost:3000
@@ -104,11 +113,36 @@ Built:
   for confirmations, scans only new blocks, and real receipts link the transaction on Celoscan.
 - A read-only wallet that shows the real wARS balance.
 
+- An activity log of what the agent reconciles on its own (paid, unmatched and ambiguous transfers).
+- An agent wallet whose every transaction carries the ERC-8021 attribution tag, and the agent's
+  ERC-8004 identity, registered on Celo Sepolia (see below).
+
 Next:
 
-- Real persistence (Postgres) to deploy.
+- Real persistence (Postgres) to deploy. There is **no live demo yet**: run it locally with
+  `pnpm dev`.
+- Registering the identity on Celo mainnet and a first real payment end to end.
 
 Later, phase 2: paying suppliers in Brazil (wARS → USD₮ → wBRL), behind explicit limits and a
 dedicated wallet.
 
-Phase 1 holds **no keys and sends no transactions**: the agent only creates links and reads the chain.
+Charges never touch the agent wallet: the payer's transfer goes straight to the business address,
+and the agent only creates links and reads the chain. The agent wallet signs only the agent's own
+actions, such as its ERC-8004 registration.
+
+## Onchain
+
+The agent's identity is registered on **Celo Sepolia (testnet)**. Nothing is on mainnet yet.
+
+| What | Value |
+| --- | --- |
+| Agent wallet | [`0xEA93f4D017BFF57a4E79CFC19b98BDb6CeA4f99c`](https://celo-sepolia.blockscout.com/address/0xEA93f4D017BFF57a4E79CFC19b98BDb6CeA4f99c) |
+| ERC-8004 agent id | `627` |
+| ERC-8004 IdentityRegistry (Sepolia) | [`0x8004A818BFB912233c491871b3d84c89A494BD9e`](https://celo-sepolia.blockscout.com/address/0x8004A818BFB912233c491871b3d84c89A494BD9e) |
+| Registration transaction | [`0xaf5107…cdba8`](https://celo-sepolia.blockscout.com/tx/0xaf510704d7006dfabe26880e72b7020e30c8af51b393ba79e8a53e28813cdba8), its calldata ends with the ERC-8021 tag (`celo_1bc71ff8ce89`, `celo_93c87b569368`) |
+| Registration file | [`public/agent.json`](public/agent.json) |
+| wARS token (mainnet, read by the app) | [`0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d`](https://celoscan.io/token/0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d) |
+
+To register on mainnet: fund the agent wallet with a little CELO, then
+`CELO_NETWORK=mainnet node --env-file=.env.local scripts/register-agent.ts`. The script checks that
+the transaction carries the attribution tag.
