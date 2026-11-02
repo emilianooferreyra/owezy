@@ -6,9 +6,11 @@ import {
   createChargesFeature,
   PaymentSimulationUnavailableError,
 } from "./charges-feature";
+import { ambiguousPayment, unmatchedPayment } from "./domain/activity";
 import { InMemoryActivityLog } from "./infrastructure/in-memory-activity-log";
 import { InMemoryChargeRepository } from "./infrastructure/in-memory-charge-repository";
 import { SimulatedTransferSource } from "./infrastructure/simulated-transfer-source";
+import { aCharge, aTransfer } from "./testing/fixtures";
 
 const fakeLink: PaymentLinkBuilder = (charge) => `https://pay.test/${charge.id}`;
 const CREATED_AT = new Date("2026-10-17T15:00:00.000Z");
@@ -270,6 +272,60 @@ describe("charges feature", () => {
       await charges.listCharges({});
 
       expect(await activity.list()).toMatchObject([{ kind: "payment-matched", chargeId: "C-0001" }]);
+    });
+
+    describe("listActivity", () => {
+      it("shows what the agent did as plain JSON, with the amount as a decimal string", async () => {
+        const { charges } = featureWithActivity();
+        await charges.createCharge(request);
+        await charges.simulatePayment("C-0001");
+
+        const listed = await charges.listActivity({});
+
+        expect(listed).toEqual([
+          {
+            id: "payment-matched:simulated-1",
+            kind: "payment-matched",
+            transferId: "simulated-1",
+            amount: "85000",
+            currency: "wARS",
+            receivedAt: "2026-10-17T15:05:00.000Z",
+            recordedAt: "2026-10-17T15:00:00.000Z",
+            chargeId: "C-0001",
+            customer: "Juan Pérez",
+          },
+        ]);
+        expect(JSON.parse(JSON.stringify(listed))).toEqual(listed);
+      });
+
+      it("shows the newest first and at most the limit", async () => {
+        const { charges, transfers } = featureWithActivity();
+        for (const amount of ["1", "2", "3"]) {
+          await transfers.simulatePayment(fromDecimalString(amount, "wARS"));
+          await charges.syncPayments();
+        }
+
+        const listed = await charges.listActivity({ limit: 2 });
+
+        expect(listed.map((entry) => entry.transferId)).toEqual(["simulated-3", "simulated-2"]);
+      });
+
+      it("keeps the candidates of an ambiguous payment and the transfer of an unmatched one", async () => {
+        const { charges, activity } = featureWithActivity();
+        await activity.record([
+          unmatchedPayment(aTransfer({ id: "tx-1" }), "2026-10-20T12:00:00.000Z"),
+          ambiguousPayment(aTransfer({ id: "tx-2" }), [aCharge({ id: "C-0001" }), aCharge({ id: "C-0002" })], "2026-10-20T12:00:00.000Z"),
+        ]);
+
+        expect(await charges.listActivity({})).toMatchObject([
+          { kind: "payment-ambiguous", transferId: "tx-2", chargeIds: ["C-0001", "C-0002"] },
+          { kind: "payment-unmatched", transferId: "tx-1" },
+        ]);
+      });
+
+      it("is empty when the feature keeps no activity", async () => {
+        expect(await feature().listActivity({})).toEqual([]);
+      });
     });
   });
 });

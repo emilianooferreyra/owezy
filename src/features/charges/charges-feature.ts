@@ -8,6 +8,7 @@ import type {
   TransferSource,
 } from "./application/ports";
 import { type ReconciliationReport, reconcilePaymentsUseCase } from "./application/reconcile-payments";
+import type { ActivityEntry } from "./domain/activity";
 import { type Charge, type ChargeStatus, newestFirst } from "./domain/charge";
 
 export class ChargeNotFoundError extends Error {
@@ -50,6 +51,13 @@ export type ChargeList = Readonly<{
   /** What every matching charge is worth together, as a decimal string. */
   total: string;
 }>;
+
+type Viewed<Entry> = Entry extends unknown
+  ? Omit<Entry, "amount"> & Readonly<{ amount: string; currency: string }>
+  : never;
+
+/** What the agent did, as plain JSON: the amount is a decimal string, never bigint. */
+export type ActivityView = Viewed<ActivityEntry>;
 
 const DEFAULT_LIST_LIMIT = 20;
 
@@ -158,6 +166,19 @@ export function createChargesFeature(deps: {
         count: matching.length,
         total: toDecimalString(money(total, "wARS")),
       };
+    },
+
+    /**
+     * What the agent did on its own, newest first. Only reads: the scheduled reconciliation
+     * writes it, so the owner's panel can poll without reading the chain.
+     */
+    async listActivity(filter: { limit?: number }): Promise<ActivityView[]> {
+      const entries = (await deps.activity?.list()) ?? [];
+      // The log is append-only, so the newest entries are last.
+      return [...entries]
+        .reverse()
+        .slice(0, filter.limit ?? DEFAULT_LIST_LIMIT)
+        .map((entry) => ({ ...entry, amount: toDecimalString(entry.amount), currency: entry.amount.currency }));
     },
 
     /** Fakes the payer's transfer, then runs the same reconciliation real transfers go through. */
