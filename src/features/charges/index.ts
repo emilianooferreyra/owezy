@@ -15,3 +15,4 @@ export {
 } from "./charges-feature";
 export { isChargeReference } from "./domain/charge";
 export { chargesRuntime } from "./runtime";
+export { reconcileOnSchedule } from "./scheduled-reconciliation";
