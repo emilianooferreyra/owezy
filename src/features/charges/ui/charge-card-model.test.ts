@@ -47,6 +47,12 @@ describe("chargeFromPart", () => {
     expect(chargeFromPart(toolPart())).toEqual(CHARGE);
   });
 
+  it("returns the charge from a finished charge_from_ledger call, which creates one too", () => {
+    expect(chargeFromPart(toolPart({ toolName: "charge_from_ledger", output: { ...CHARGE, entries: ["L-0001"] } }))).toMatchObject(
+      CHARGE,
+    );
+  });
+
   it("ignores text parts", () => {
     expect(chargeFromPart({ type: "text", text: "hola" } as EveMessagePart)).toBeUndefined();
   });

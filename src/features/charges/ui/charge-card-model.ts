@@ -3,7 +3,8 @@ import { z } from "zod";
 import { formatArs } from "../../../core/money/money";
 import type { ChargeView } from "../charges-feature";
 
-const CREATE_CHARGE_TOOL = "create_charge";
+// The tools whose output is a charge the owner can send: each shows as a charge card.
+const CHARGE_TOOLS = new Set(["create_charge", "charge_from_ledger"]);
 
 // Tool outputs reach the browser as `unknown`, so the card validates them before rendering.
 const chargeViewSchema = z.object({
@@ -67,7 +68,7 @@ export function pollStatusResult(askedIds: readonly string[], httpStatus: number
 export function chargeFromPart(part: EveMessagePart): ChargeView | undefined {
   if (
     part.type !== "dynamic-tool" ||
-    part.toolName !== CREATE_CHARGE_TOOL ||
+    !CHARGE_TOOLS.has(part.toolName) ||
     part.state !== "output-available" ||
     part.partial
   ) {
