@@ -4,7 +4,9 @@ import { InMemoryChargeRepository } from "../infrastructure/in-memory-charge-rep
 import { money } from "../../../core/money/money";
 import { UNIT, wars } from "../testing/fixtures";
 import { createChargeUseCase } from "./create-charge";
-import type { PaymentLinkBuilder } from "./ports";
+import { ChargeConflictError, type PaymentLinkBuilder } from "./ports";
+import type { Charge } from "../domain/charge";
+import { aCharge } from "../testing/fixtures";
 
 // Test doubles: isolate the use case from Ripio's URL format and from the real clock.
 const fakeLink: PaymentLinkBuilder = (charge) => `https://pay.test/${charge.id}`;
@@ -115,5 +117,59 @@ describe("createCharge use case, with charges of the same amount", () => {
 
     expect(retry.created).toBe(false);
     expect(retry.charge).toEqual(first.charge);
+  });
+});
+
+/** Another writer saves `competing` right before this one's first save, which then conflicts. */
+class RacedChargeRepository extends InMemoryChargeRepository {
+  conflicts = 0;
+
+  constructor(
+    private readonly competing: (attempt: Charge) => Charge | undefined,
+    private readonly times = 1,
+  ) {
+    super();
+  }
+
+  override async save(charge: Charge): Promise<void> {
+    if (this.conflicts < this.times) {
+      this.conflicts += 1;
+      const other = this.competing(charge);
+      if (other) {
+        await super.save(other);
+      }
+      throw new ChargeConflictError(charge.id);
+    }
+    await super.save(charge);
+  }
+}
+
+describe("createCharge use case when another writer saves at the same time", () => {
+  it("reads again and takes the next reference", async () => {
+    const charges = new RacedChargeRepository(() => aCharge({ id: "C-0001", amount: wars(1_000n) }));
+    const createCharge = createChargeUseCase({ charges, buildPaymentLink: fakeLink, now: () => NOW });
+
+    const result = await createCharge(request);
+
+    expect(result.charge.id).toBe("C-0002");
+    expect((await charges.list()).map((charge) => charge.id)).toEqual(["C-0001", "C-0002"]);
+  });
+
+  it("returns the charge the same request already created, instead of a second one", async () => {
+    const charges = new RacedChargeRepository((attempt) => attempt);
+    const createCharge = createChargeUseCase({ charges, buildPaymentLink: fakeLink, now: () => NOW });
+
+    const result = await createCharge(request);
+
+    expect(result.created).toBe(false);
+    expect(await charges.list()).toHaveLength(1);
+  });
+
+  it("gives up after a few attempts instead of retrying forever", async () => {
+    const charges = new RacedChargeRepository(() => undefined, Number.POSITIVE_INFINITY);
+    const createCharge = createChargeUseCase({ charges, buildPaymentLink: fakeLink, now: () => NOW });
+
+    await expect(createCharge(request)).rejects.toBeInstanceOf(ChargeConflictError);
+    expect(charges.conflicts).toBe(3);
   });
 });

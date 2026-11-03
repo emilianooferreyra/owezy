@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
+import { PGLITE_STARTUP_MS, testDatabase } from "./infrastructure/postgres/test-database";
+import { PostgresChargeRepository } from "./infrastructure/postgres/postgres-charge-repository";
 import {
   chargesConfigFromEnv,
+  chargesFeatureFromConfig,
   InvalidBusinessAddressError,
   InvalidPaymentsModeError,
   InvalidStartBlockError,
+  MissingDatabaseError,
 } from "./charges-config";
 
 const CWD = "/project";
@@ -55,7 +59,48 @@ describe("chargesConfigFromEnv", () => {
     expect(() => chargesConfigFromEnv(env, CWD)).toThrow(InvalidStartBlockError);
   });
 
+  it("stores in Postgres when a database URL is set, in either mode", () => {
+    const url = "postgres://user:secret@db.test/charges";
+
+    expect(chargesConfigFromEnv({ DATABASE_URL: url }, CWD)).toMatchObject({ mode: "simulated", databaseUrl: url });
+    expect(
+      chargesConfigFromEnv({ PAYMENTS_MODE: "ripio", BUSINESS_ADDRESS: ADDRESS, DATABASE_URL: url }, CWD),
+    ).toMatchObject({ mode: "ripio", databaseUrl: url });
+  });
+
+  it("refuses to run on Vercel without a database, where files would vanish between requests", () => {
+    expect(() => chargesConfigFromEnv({ VERCEL: "1" }, CWD)).toThrow(MissingDatabaseError);
+    expect(() => chargesConfigFromEnv({ VERCEL: "1", DATABASE_URL: "" }, CWD)).toThrow(MissingDatabaseError);
+  });
+
   it("refuses an unknown payments mode instead of guessing", () => {
     expect(() => chargesConfigFromEnv({ PAYMENTS_MODE: "real" }, CWD)).toThrow(InvalidPaymentsModeError);
   });
+});
+
+describe("chargesFeatureFromConfig", () => {
+  it("keeps charges and simulated payments in Postgres when the config has a database URL", async () => {
+    const db = await testDatabase();
+    const urls: string[] = [];
+    const config = chargesConfigFromEnv({ DATABASE_URL: "postgres://db.test/charges" }, "/nonexistent");
+    const feature = chargesFeatureFromConfig(config, {
+      connect: (url) => {
+        urls.push(url);
+        return db;
+      },
+    });
+
+    const charge = await feature.createCharge({
+      requestId: "request-1",
+      customer: "Juan Pérez",
+      description: "medialunas",
+      amount: "1000",
+    });
+    const { outcome } = await feature.simulatePayment(charge.id);
+
+    expect(urls).toEqual(["postgres://db.test/charges"]);
+    expect(outcome).toBe("paid");
+    expect((await new PostgresChargeRepository(db).findById(charge.id))?.status).toBe("paid");
+    expect(await feature.listActivity({})).toHaveLength(1);
+  }, PGLITE_STARTUP_MS);
 });

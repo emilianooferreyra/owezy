@@ -27,3 +27,15 @@ export interface TransferSource {
 export interface PaymentSimulator extends TransferSource {
   simulatePayment(amount: Money): Promise<IncomingTransfer>;
 }
+
+/**
+ * Saving would break a rule another writer got to first: the reference is taken, another pending
+ * charge has the same amount, or the transfer already paid a charge. Reading again and retrying
+ * resolves it.
+ */
+export class ChargeConflictError extends Error {
+  constructor(chargeId: string, options?: { cause?: unknown }) {
+    super(`Charge ${chargeId} conflicts with one saved at the same time`, options);
+    this.name = "ChargeConflictError";
+  }
+}

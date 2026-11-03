@@ -1,6 +1,9 @@
 import type { Money } from "../../../core/money/money";
 import { type Charge, createCharge, distinctPendingAmount, nextChargeReference } from "../domain/charge";
-import type { ChargeRepository, PaymentLinkBuilder } from "./ports";
+import { ChargeConflictError, type ChargeRepository, type PaymentLinkBuilder } from "./ports";
+
+// Two requests saving at once is rare (one owner, one agent), so a few attempts always settle it.
+const MAX_ATTEMPTS = 3;
 
 export type CreateChargeResult = Readonly<{
   charge: Charge;
@@ -29,8 +32,7 @@ export function createChargeUseCase(deps: {
   buildPaymentLink: PaymentLinkBuilder;
   now: () => Date;
 }) {
-  return async (request: CreateChargeRequest): Promise<CreateChargeResult> => {
-    const idempotencyKey = idempotencyKeyOf(request);
+  async function attempt(request: CreateChargeRequest, idempotencyKey: string): Promise<CreateChargeResult> {
     const existing = await deps.charges.findByIdempotencyKey(idempotencyKey);
     if (existing) {
       return { charge: existing, paymentLink: deps.buildPaymentLink(existing), created: false };
@@ -48,5 +50,19 @@ export function createChargeUseCase(deps: {
     await deps.charges.save(charge);
 
     return { charge, paymentLink: deps.buildPaymentLink(charge), created: true };
+  }
+
+  return async (request: CreateChargeRequest): Promise<CreateChargeResult> => {
+    const idempotencyKey = idempotencyKeyOf(request);
+    for (let attempts = 1; ; attempts += 1) {
+      try {
+        return await attempt(request, idempotencyKey);
+      } catch (error) {
+        // Another writer saved first: reading again sees its charge and picks around it.
+        if (!(error instanceof ChargeConflictError) || attempts >= MAX_ATTEMPTS) {
+          throw error;
+        }
+      }
+    }
   };
 }

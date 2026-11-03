@@ -6,6 +6,13 @@ import { viemTransferLogReader } from "./infrastructure/onchain/viem-transfer-lo
 import { FileActivityLog } from "./infrastructure/file-activity-log";
 import { FileChargeRepository } from "./infrastructure/file-charge-repository";
 import { FileSimulatedTransferSource } from "./infrastructure/file-simulated-transfer-source";
+import { connectDatabase, type Database } from "../../core/storage/database";
+import { PostgresActivityLog } from "./infrastructure/postgres/postgres-activity-log";
+import { PostgresChargeRepository } from "./infrastructure/postgres/postgres-charge-repository";
+import { PostgresScanStore } from "./infrastructure/postgres/postgres-scan-store";
+import { PostgresSimulatedTransferSource } from "./infrastructure/postgres/postgres-simulated-transfer-source";
+import type { ActivityLog, ChargeRepository, PaymentSimulator } from "./application/ports";
+import type { ScanStore } from "./infrastructure/onchain/onchain-transfer-source";
 import { ripioRampLinkBuilder } from "./infrastructure/ripio-ramp-link";
 import { simulatedCheckoutLinkBuilder } from "./infrastructure/simulated-checkout-link";
 
@@ -48,9 +55,19 @@ export class InvalidStartBlockError extends Error {
   }
 }
 
+export class MissingDatabaseError extends Error {
+  constructor() {
+    super("DATABASE_URL is required on Vercel: there is no persistent disk, so files would vanish between requests");
+    this.name = "MissingDatabaseError";
+  }
+}
+
+/** Where charges live: Postgres when `databaseUrl` is set, JSON files in `dataDir` otherwise. */
+type Storage = Readonly<{ dataDir: string; databaseUrl?: string }>;
+
 export type ChargesConfig =
-  | Readonly<{ mode: "simulated"; appUrl: string; dataDir: string }>
-  | Readonly<{ mode: "ripio"; recipient: Address; dataDir: string; startBlock?: bigint }>;
+  | (Storage & Readonly<{ mode: "simulated"; appUrl: string }>)
+  | (Storage & Readonly<{ mode: "ripio"; recipient: Address; startBlock?: bigint }>);
 
 type Env = Readonly<Record<string, string | undefined>>;
 
@@ -62,10 +79,15 @@ function paymentsMode(env: Env): string {
 /** Reads the charges configuration. Simulated is the default, so a demo never touches real money. */
 export function chargesConfigFromEnv(env: Env, cwd: string): ChargesConfig {
   const dataDir = env.DATA_DIR || join(cwd, ".data");
+  const databaseUrl = env.DATABASE_URL || undefined;
+  if (env.VERCEL && !databaseUrl) {
+    throw new MissingDatabaseError();
+  }
+  const storage: Storage = databaseUrl === undefined ? { dataDir } : { dataDir, databaseUrl };
   const mode = paymentsMode(env);
 
   if (mode === "simulated") {
-    return { mode, appUrl: env.APP_URL || DEFAULT_APP_URL, dataDir };
+    return { mode, appUrl: env.APP_URL || DEFAULT_APP_URL, ...storage };
   }
   if (mode === "ripio") {
     const recipient = env.BUSINESS_ADDRESS;
@@ -74,27 +96,59 @@ export function chargesConfigFromEnv(env: Env, cwd: string): ChargesConfig {
     }
     const startBlock = env.START_BLOCK;
     if (startBlock === undefined || startBlock === "") {
-      return { mode, recipient, dataDir };
+      return { mode, recipient, ...storage };
     }
     if (!BLOCK_PATTERN.test(startBlock)) {
       throw new InvalidStartBlockError(startBlock);
     }
-    return { mode, recipient, dataDir, startBlock: BigInt(startBlock) };
+    return { mode, recipient, ...storage, startBlock: BigInt(startBlock) };
   }
   throw new InvalidPaymentsModeError(mode);
 }
 
-/** Builds the feature with file storage, shared by the agent and the web app (separate processes). */
-export function chargesFeatureFromConfig(config: ChargesConfig): ChargesFeature {
-  const charges = new FileChargeRepository(join(config.dataDir, "charges.json"));
-  const activity = new FileActivityLog(join(config.dataDir, "activity.json"));
+type Stores = Readonly<{
+  charges: ChargeRepository;
+  activity: ActivityLog;
+  simulator: () => PaymentSimulator;
+  scan: (recipient: Address) => ScanStore;
+}>;
+
+function postgresStores(db: Database): Stores {
+  return {
+    charges: new PostgresChargeRepository(db),
+    activity: new PostgresActivityLog(db),
+    simulator: () => new PostgresSimulatedTransferSource(db),
+    scan: (recipient) => new PostgresScanStore(db, recipient),
+  };
+}
+
+function fileStores(dataDir: string): Stores {
+  return {
+    charges: new FileChargeRepository(join(dataDir, "charges.json")),
+    activity: new FileActivityLog(join(dataDir, "activity.json")),
+    simulator: () => new FileSimulatedTransferSource(join(dataDir, "simulated-transfers.json")),
+    scan: () => new FileScanStore(join(dataDir, "onchain-scan.json")),
+  };
+}
+
+/**
+ * Builds the feature, shared by the agent and the web app (separate processes): Postgres when the
+ * config has a database URL (required on Vercel), JSON files for local demos otherwise.
+ */
+export function chargesFeatureFromConfig(
+  config: ChargesConfig,
+  options: { connect?: (url: string) => Database } = {},
+): ChargesFeature {
+  const connect = options.connect ?? connectDatabase;
+  const { charges, activity, simulator, scan } =
+    config.databaseUrl === undefined ? fileStores(config.dataDir) : postgresStores(connect(config.databaseUrl));
 
   if (config.mode === "simulated") {
     return createChargesFeature({
       charges,
       activity,
       buildPaymentLink: simulatedCheckoutLinkBuilder({ appUrl: config.appUrl }),
-      simulator: new FileSimulatedTransferSource(join(config.dataDir, "simulated-transfers.json")),
+      simulator: simulator(),
     });
   }
   return createChargesFeature({
@@ -103,7 +157,7 @@ export function chargesFeatureFromConfig(config: ChargesConfig): ChargesFeature 
     buildPaymentLink: ripioRampLinkBuilder({ recipient: config.recipient }),
     transfers: new OnchainTransferSource({
       reader: viemTransferLogReader({ recipient: config.recipient }),
-      store: new FileScanStore(join(config.dataDir, "onchain-scan.json")),
+      store: scan(config.recipient),
       ...(config.startBlock === undefined ? {} : { startBlock: config.startBlock }),
       confirmations: CONFIRMATIONS,
       chunkSize: CHUNK_SIZE,
