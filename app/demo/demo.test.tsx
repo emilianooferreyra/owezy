@@ -31,6 +31,12 @@ describe("demo chat", () => {
     expect(within(greeting).queryByText(/quién te debe/)).toBeNull();
   });
 
+  it("shows the owner what the agent reconciled on its own, next to the chat", () => {
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByRole("region", { name: "Lo que hice solo" })).toBeTruthy();
+  });
+
   it("sends a suggestion with one tap", () => {
     render(<DemoScreen />);
 

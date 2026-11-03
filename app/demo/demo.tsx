@@ -10,6 +10,7 @@ import { Button } from "@/core/ui/button";
 import { Input } from "@/core/ui/input";
 import type { ChargeView } from "@/features/charges/charges-feature";
 import {
+  ActivityPanel,
   ChargeCard,
   chargeFromPart,
   chatSuggestions,
@@ -165,7 +166,7 @@ function OwnerChat() {
   }
 
   return (
-    <div className="mx-auto grid min-h-full max-w-2xl grid-rows-[auto_1fr_auto] px-4">
+    <div className="mx-auto grid min-h-full max-w-2xl grid-rows-[auto_auto_1fr_auto] px-4">
       <header className="flex items-center gap-3 border-b py-5">
         <span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
           {BUSINESS_NAME.charAt(0)}
@@ -180,6 +181,8 @@ function OwnerChat() {
           </Link>
         </Button>
       </header>
+
+      <ActivityPanel className="mt-4" />
 
       <div aria-live="polite" className="flex flex-col gap-4 py-5">
         <Greeting />
