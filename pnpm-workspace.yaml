@@ -1,7 +1,9 @@
 # Single project (no workspace packages). This file only holds pnpm settings.
 allowBuilds:
+  "@mongodb-js/zstd": false
   bufferutil: false
   esbuild: true
   keccak: false
+  node-liblzma: false
   sharp: false
   utf-8-validate: false
