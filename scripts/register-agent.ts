@@ -10,7 +10,7 @@ import { ATTRIBUTION_CODES } from "../src/core/celo/attribution.ts";
 
 // HTTPS, so one transaction is enough; works before the app is deployed. Override with AGENT_URI.
 const DEFAULT_AGENT_URI =
-  "https://raw.githubusercontent.com/emilianooferreyra/sme-treasury-agent/main/public/agent.json";
+  "https://raw.githubusercontent.com/emilianooferreyra/owezy/main/public/agent.json";
 
 const config = agentWalletConfigFromEnv(process.env);
 const chain = celoChain(config.network);

@@ -38,7 +38,7 @@ describe("how it works page", () => {
 
     expect(screen.getAllByRole("link", { name: /Probar la demo/ })[0]?.getAttribute("href")).toBe("/demo");
     expect(screen.getAllByRole("link", { name: /Ver el código/ })[0]?.getAttribute("href")).toBe(
-      "https://github.com/emilianooferreyra/sme-treasury-agent",
+      "https://github.com/emilianooferreyra/owezy",
     );
   });
 });

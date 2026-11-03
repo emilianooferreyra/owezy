@@ -24,7 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/cor
 
 export const metadata: Metadata = { title: "Cómo funciona" };
 
-const REPO_URL = "https://github.com/emilianooferreyra/sme-treasury-agent";
+const REPO_URL = "https://github.com/emilianooferreyra/owezy";
 
 type Item = { icon: LucideIcon; title: string; description: string };
 

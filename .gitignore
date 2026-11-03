@@ -27,6 +27,7 @@ next-env.d.ts
 
 .agents/
 .claude/
+.atl/
 openspec/
 .vercel
 .env*

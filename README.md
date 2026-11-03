@@ -5,7 +5,7 @@
 An AI collections assistant for Argentine small businesses: charge customers in pesos, get paid in
 **wARS** (Ripio's digital peso) on **Celo**, and let the agent reconcile payments for you.
 
-**Live demo:** [sme-treasury-agent.vercel.app/demo](https://sme-treasury-agent.vercel.app/demo). Open
+**Live demo:** [getowezy.vercel.app/demo](https://getowezy.vercel.app/demo). Open
 chat, no account needed. It runs with simulated payments, so try paying a charge from the customer's
 phone on the right.
 
@@ -127,7 +127,7 @@ Built:
 - Postgres storage (Neon) when `DATABASE_URL` is set, with the business rules enforced by the
   database too: no two pending charges share an amount, and a transfer pays one charge only.
 - A public demo chat: no account needed, since the agent never moves money.
-- Deployed on Vercel (Hobby) with Neon Postgres: [sme-treasury-agent.vercel.app](https://sme-treasury-agent.vercel.app).
+- Deployed on Vercel (Hobby) with Neon Postgres: [getowezy.vercel.app](https://getowezy.vercel.app).
 - An agent wallet whose every transaction carries the ERC-8021 attribution tag, and the agent's
   ERC-8004 identity, registered on Celo Sepolia (see below).
 
