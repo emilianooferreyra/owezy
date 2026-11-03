@@ -15,7 +15,7 @@ describe("metadata", () => {
   });
 
   it("gives every page its own title inside the app's title template", () => {
-    expect(rootMetadata.title).toMatchObject({ template: "%s · Cobros en pesos" });
+    expect(rootMetadata.title).toMatchObject({ template: "%s · Owezy" });
     expect(demoMetadata.title).toBe("Demo");
     expect(payMetadata.title).toBe("Pagar");
   });

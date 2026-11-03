@@ -12,7 +12,7 @@ import { createConfig, http } from "wagmi";
 export function createWalletConfig(projectId: string) {
   const connectors = connectorsForWallets(
     [{ groupName: "Billeteras", wallets: [injectedWallet, metaMaskWallet, valoraWallet] }],
-    { appName: "Cobros en pesos", projectId },
+    { appName: "Owezy", projectId },
   );
 
   return createConfig({

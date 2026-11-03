@@ -1,6 +1,6 @@
 {
   "type": "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
-  "name": "SME Treasury Agent",
+  "name": "Owezy",
   "description": "Agente de cobros para pymes argentinas. El dueño pide un cobro por chat, el cliente paga en pesos desde su banco o billetera virtual a través de Ripio, el dinero llega como wARS en Celo a la billetera del negocio y el agente concilia cada pago con su cobro.",
   "services": [
     { "name": "web", "endpoint": "https://github.com/emilianooferreyra/sme-treasury-agent" },

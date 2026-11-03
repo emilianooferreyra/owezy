@@ -1,4 +1,6 @@
-# SME Treasury Agent
+# Owezy
+
+**They owe, you get paid.**
 
 An AI collections assistant for Argentine small businesses: charge customers in pesos, get paid in
 **wARS** (Ripio's digital peso) on **Celo**, and let the agent reconcile payments for you.
