@@ -15,6 +15,7 @@ import { DemoScreen } from "./demo";
 beforeEach(() => {
   agent.status = "ready";
   agent.send = vi.fn(() => Promise.resolve());
+  agent.data.messages = [];
 });
 
 afterEach(cleanup);
@@ -35,6 +36,16 @@ describe("demo chat", () => {
     render(<DemoScreen />);
 
     expect(within(chat()).getByRole("region", { name: "Lo que hice solo" })).toBeTruthy();
+  });
+
+  it("shows the agent's **bold** as bold, not as asterisks", () => {
+    agent.data.messages = [
+      { id: "m1", role: "assistant", parts: [{ type: "text", text: "Listo, el cobro **C-0001** quedó creado." }] },
+    ];
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByText("C-0001").tagName).toBe("STRONG");
+    expect(within(chat()).queryByText(/\*\*/)).toBeNull();
   });
 
   it("sends a suggestion with one tap", () => {

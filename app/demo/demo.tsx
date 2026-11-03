@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import type { FormEvent } from "react";
 import { cn } from "@/core/lib/utils";
 import { Button } from "@/core/ui/button";
+import { InlineMarkdown } from "@/core/ui/inline-markdown";
 import { Input } from "@/core/ui/input";
 import type { ChargeView } from "@/features/charges/charges-feature";
 import {
@@ -205,7 +206,7 @@ function OwnerChat() {
                         : "rounded-bl-lg bg-card shadow-sm ring-1 ring-foreground/5",
                     )}
                   >
-                    {part.text}
+                    {message.role === "user" ? part.text : <InlineMarkdown text={part.text} />}
                   </motion.p>
                 );
               }
