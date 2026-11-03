@@ -1,23 +1,30 @@
 "use client";
 
 import { useEveAgent } from "eve/react";
-import { ArrowLeft, ArrowUp, Check, LoaderCircle, Smartphone, Store } from "lucide-react";
+import { ArrowLeft, ArrowUp, Bot, LoaderCircle, Smartphone, Store } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import type { FormEvent } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { cn } from "@/core/lib/utils";
 import { Button } from "@/core/ui/button";
 import { InlineMarkdown } from "@/core/ui/inline-markdown";
 import { Input } from "@/core/ui/input";
-import type { ChargeView } from "@/features/charges/charges-feature";
 import {
   ActivityPanel,
+  CustomerChoice,
+  candidatesFromPart,
   ChargeCard,
   chargeFromPart,
-  chatSuggestions,
+  chargeRequest,
   DemoProvider,
+  greetingFor,
+  LedgerCard,
+  LedgerNote,
+  ledgerFromPart,
+  noteFromPart,
   PayerPhone,
   useDemo,
+  useLedger,
 } from "@/features/charges/ui";
 
 const BUSINESS_NAME = "Panadería de Ana";
@@ -100,74 +107,96 @@ function Demo() {
   );
 }
 
-const CAPABILITIES = [
-  { title: "Crear un link de cobro", detail: "para que se lo compartas a tu cliente. Decime a quién, por qué y cuánto." },
-  { title: "Fijarme cómo está un cobro,", detail: "por su número (C-0001) o por el nombre del cliente." },
-] as const;
+const BUBBLE = "max-w-[85%] whitespace-pre-wrap break-words rounded-3xl px-4 py-2.5";
+const AGENT_BUBBLE = "rounded-bl-lg bg-card shadow-sm ring-1 ring-foreground/5";
 
-/** The agent's first message, written by the app: it costs no tokens and is always the same. */
-function Greeting() {
+/**
+ * The agent's first message, written from the shop's ledger: who owes what today, with a button
+ * to charge each customer. It costs no tokens, and it changes with the business.
+ */
+function Greeting({ version, onCharge, disabled }: { version: number; onCharge: (customer: string) => void; disabled: boolean }) {
+  const ledger = useLedger(version);
+  const line =
+    ledger.kind === "ready"
+      ? greetingFor(ledger.ledger)
+      : ledger.kind === "failed"
+        ? "¡Hola, Ana! Contame qué se llevó alguien, o a quién querés cobrarle."
+        : "¡Hola, Ana! Estoy revisando la libreta…";
+
   return (
-    <motion.div
-      role="note"
-      aria-label="Qué puede hacer el asistente"
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="grid max-w-[85%] gap-2 rounded-3xl rounded-bl-lg bg-card px-4 py-3 shadow-sm ring-1 ring-foreground/5"
-    >
-      <p>¡Hola! Soy tu asistente de cobros. Puedo:</p>
-      <ul className="grid gap-1.5">
-        {CAPABILITIES.map(({ title, detail }) => (
-          <li key={title} className="flex gap-2">
-            <Check className="mt-1 size-4 shrink-0 text-success" aria-hidden="true" />
-            <span>
-              <span className="font-medium">{title}</span> {detail}
-            </span>
-          </li>
-        ))}
-      </ul>
-      <p className="text-muted-foreground">
-        Cuando tu cliente paga, la tarjeta del cobro pasa a pagado sola. Tocá una sugerencia de abajo o escribime.
-      </p>
-    </motion.div>
+    <div role="note" aria-label="Saludo del asistente" className="flex flex-col items-start gap-2">
+      <motion.p initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className={cn(BUBBLE, AGENT_BUBBLE)}>
+        {line}
+      </motion.p>
+      {ledger.kind === "ready" && ledger.ledger.customers.length > 0 && (
+        <LedgerCard ledger={ledger.ledger} onCharge={onCharge} disabled={disabled} />
+      )}
+    </div>
   );
 }
 
+/** What the agent reconciled on its own, one tap away in the header instead of above the chat. */
+function ActivityToggle() {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="cursor-pointer"
+      >
+        <Bot aria-hidden="true" /> Actividad
+      </Button>
+      {open && <ActivityPanel className="absolute right-0 top-full z-30 mt-2 w-80" />}
+    </div>
+  );
+}
+
+const LEDGER_TOOLS = new Set(["add_to_ledger", "charge_from_ledger"]);
+
 function OwnerChat() {
   const agent = useEveAgent();
-  const { state } = useDemo();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const isResuming = agent.status === "resuming";
+  const bottom = useRef<HTMLDivElement>(null);
 
-  // Charges shown in the chat, with the latest status the demo knows (a payment updates it).
-  const charges = new Map<string, ChargeView>();
-  const asked: string[] = [];
-  for (const message of agent.data.messages) {
-    for (const part of message.parts) {
-      if (message.role === "user" && part.type === "text") {
-        asked.push(part.text);
-      }
-      const charge = part.type === "dynamic-tool" ? chargeFromPart(part) : undefined;
-      if (charge) {
-        charges.set(charge.id, state.charges[charge.id] ?? charge);
-      }
+  // Every finished write to the ledger reads it again, so the greeting's card stays current.
+  const parts = agent.data.messages.flatMap((message) => message.parts);
+  const ledgerWrites = parts.filter(
+    (part) => part.type === "dynamic-tool" && LEDGER_TOOLS.has(part.toolName) && part.state === "output-available",
+  ).length;
+  const lastText = parts.at(-1)?.type === "text" ? (parts.at(-1) as { text: string }).text.length : 0;
+
+  // Keep the newest message in view as it streams in.
+  useEffect(() => {
+    bottom.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
+  }, [parts.length, lastText, isBusy]);
+
+  function say(message: string) {
+    if (isResuming) {
+      return;
     }
+    void agent.send(message, isBusy ? { turnPolicy: "steer" } : undefined);
   }
-  const suggestions = chatSuggestions({ charges: [...charges.values()], asked });
 
   function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const message = String(new FormData(form).get("message") ?? "").trim();
-    if (message.length === 0 || isResuming) {
+    if (message.length === 0) {
       return;
     }
-    void agent.send(message, isBusy ? { turnPolicy: "steer" } : undefined);
+    say(message);
     form.reset();
   }
 
+  const charge = (customer: string) => say(chargeRequest(customer));
+
   return (
-    <div className="mx-auto grid min-h-full max-w-2xl grid-rows-[auto_auto_1fr_auto] px-4">
+    <div className="mx-auto grid min-h-full max-w-2xl grid-rows-[auto_1fr_auto] px-4">
       <header className="flex items-center gap-3 border-b py-5">
         <span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
           {BUSINESS_NAME.charAt(0)}
@@ -176,17 +205,18 @@ function OwnerChat() {
           <h1 className="text-lg font-semibold leading-tight">{BUSINESS_NAME}</h1>
           <p className="text-sm text-muted-foreground">Tu asistente de cobros en pesos</p>
         </div>
-        <Button asChild variant="ghost" size="sm" className="ml-auto">
-          <Link href="/">
-            <ArrowLeft aria-hidden="true" /> Inicio
-          </Link>
-        </Button>
+        <div className="ml-auto flex items-center gap-1">
+          <ActivityToggle />
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/">
+              <ArrowLeft aria-hidden="true" /> Inicio
+            </Link>
+          </Button>
+        </div>
       </header>
 
-      <ActivityPanel className="mt-4" />
-
       <div aria-live="polite" className="flex flex-col gap-4 py-5">
-        <Greeting />
+        <Greeting version={ledgerWrites} onCharge={charge} disabled={isBusy || isResuming} />
         {agent.data.messages.map((message) => (
           <div
             key={message.id}
@@ -200,10 +230,8 @@ function OwnerChat() {
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={cn(
-                      "max-w-[85%] whitespace-pre-wrap break-words rounded-3xl px-4 py-2.5",
-                      message.role === "user"
-                        ? "rounded-br-lg bg-primary text-primary-foreground"
-                        : "rounded-bl-lg bg-card shadow-sm ring-1 ring-foreground/5",
+                      BUBBLE,
+                      message.role === "user" ? "rounded-br-lg bg-primary text-primary-foreground" : AGENT_BUBBLE,
                     )}
                   >
                     {message.role === "user" ? part.text : <InlineMarkdown text={part.text} />}
@@ -213,9 +241,21 @@ function OwnerChat() {
               if (part.type !== "dynamic-tool") {
                 return null;
               }
-              const charge = chargeFromPart(part);
-              if (charge) {
-                return <ChargeCard key={part.toolCallId} charge={charge} />;
+              const created = chargeFromPart(part);
+              if (created) {
+                return <ChargeCard key={part.toolCallId} charge={created} />;
+              }
+              const ledger = ledgerFromPart(part);
+              if (ledger) {
+                return <LedgerCard key={part.toolCallId} ledger={ledger} onCharge={charge} disabled={isBusy || isResuming} />;
+              }
+              const note = noteFromPart(part);
+              if (note) {
+                return <LedgerNote key={part.toolCallId} entry={note} />;
+              }
+              const candidates = candidatesFromPart(part);
+              if (candidates) {
+                return <CustomerChoice key={part.toolCallId} candidates={candidates} onChoose={say} disabled={isBusy || isResuming} />;
               }
               if (part.state === "output-error") {
                 return (
@@ -234,31 +274,15 @@ function OwnerChat() {
           </p>
         )}
         {agent.error && <p className="text-sm text-destructive">{agent.error.message}</p>}
+        <div ref={bottom} className="h-2 shrink-0" aria-hidden="true" />
       </div>
 
-      <div className="sticky bottom-0 grid gap-2 bg-background/80 pb-4 pt-3 backdrop-blur">
-        {suggestions.length > 0 && (
-          <ul aria-label="Sugerencias" className="flex flex-wrap gap-2">
-            {suggestions.map((suggestion) => (
-              <li key={suggestion}>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={isBusy || isResuming}
-                  onClick={() => void agent.send(suggestion)}
-                  className="h-auto cursor-pointer whitespace-normal rounded-full py-1.5 text-left"
-                >
-                  {suggestion}
-                </Button>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="sticky bottom-0 bg-background/80 pb-4 pt-3 backdrop-blur">
         <form onSubmit={send} className="flex gap-2">
           <Input
             name="message"
-            placeholder="Escribí un mensaje"
+            aria-label="Mensaje"
+            placeholder="Ej: Anotá que Juan llevó 2 tortas por $30.000"
             autoComplete="off"
             disabled={isResuming}
             className="h-11 flex-1 px-4"
