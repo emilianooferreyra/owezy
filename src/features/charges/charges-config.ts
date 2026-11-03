@@ -76,6 +76,14 @@ function paymentsMode(env: Env): string {
   return env.PAYMENTS_MODE || "simulated";
 }
 
+/** Where payment links point: APP_URL, else the Vercel production domain, else the local app. */
+function appUrlFrom(env: Env): string {
+  if (env.APP_URL) {
+    return env.APP_URL;
+  }
+  return env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : DEFAULT_APP_URL;
+}
+
 /** Reads the charges configuration. Simulated is the default, so a demo never touches real money. */
 export function chargesConfigFromEnv(env: Env, cwd: string): ChargesConfig {
   const dataDir = env.DATA_DIR || join(cwd, ".data");
@@ -87,7 +95,7 @@ export function chargesConfigFromEnv(env: Env, cwd: string): ChargesConfig {
   const mode = paymentsMode(env);
 
   if (mode === "simulated") {
-    return { mode, appUrl: env.APP_URL || DEFAULT_APP_URL, ...storage };
+    return { mode, appUrl: appUrlFrom(env), ...storage };
   }
   if (mode === "ripio") {
     const recipient = env.BUSINESS_ADDRESS;

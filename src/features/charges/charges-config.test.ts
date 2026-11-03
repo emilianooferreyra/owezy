@@ -30,6 +30,15 @@ describe("chargesConfigFromEnv", () => {
     });
   });
 
+  it("on Vercel, builds payment links on the production domain when APP_URL is not set", () => {
+    const env = { VERCEL: "1", DATABASE_URL: "postgres://db.test/charges", VERCEL_PROJECT_PRODUCTION_URL: "cobros.vercel.app" };
+
+    expect(chargesConfigFromEnv(env, CWD)).toMatchObject({ appUrl: "https://cobros.vercel.app" });
+    expect(chargesConfigFromEnv({ ...env, APP_URL: "https://mi-dominio.test" }, CWD)).toMatchObject({
+      appUrl: "https://mi-dominio.test",
+    });
+  });
+
   it("uses the real Ripio ramp with a valid business address", () => {
     expect(chargesConfigFromEnv({ PAYMENTS_MODE: "ripio", BUSINESS_ADDRESS: ADDRESS }, CWD)).toEqual({
       mode: "ripio",
