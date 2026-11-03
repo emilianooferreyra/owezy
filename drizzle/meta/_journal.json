@@ -8,6 +8,13 @@
       "when": 1793717813848,
       "tag": "0000_oval_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793732377177,
+      "tag": "0001_great_terrax",
+      "breakpoints": true
     }
   ]
 }

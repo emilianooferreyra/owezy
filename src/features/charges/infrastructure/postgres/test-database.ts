@@ -23,7 +23,7 @@ export async function testDatabase(): Promise<Database> {
   shared ??= migrated();
   const db = await shared;
   await db.execute(
-    sql`truncate charges, activity, scan_cursor, scanned_transfers, simulated_transfers restart identity`,
+    sql`truncate charges, activity, scan_cursor, scanned_transfers, simulated_transfers, ledger_entries restart identity`,
   );
   return db;
 }

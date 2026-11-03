@@ -4,14 +4,16 @@ import { FileScanStore } from "./infrastructure/onchain/file-scan-store";
 import { OnchainTransferSource } from "./infrastructure/onchain/onchain-transfer-source";
 import { viemTransferLogReader } from "./infrastructure/onchain/viem-transfer-log-reader";
 import { FileActivityLog } from "./infrastructure/file-activity-log";
+import { FileLedgerRepository } from "./infrastructure/file-ledger-repository";
 import { FileChargeRepository } from "./infrastructure/file-charge-repository";
 import { FileSimulatedTransferSource } from "./infrastructure/file-simulated-transfer-source";
 import { connectDatabase, type Database } from "../../core/storage/database";
 import { PostgresActivityLog } from "./infrastructure/postgres/postgres-activity-log";
 import { PostgresChargeRepository } from "./infrastructure/postgres/postgres-charge-repository";
+import { PostgresLedgerRepository } from "./infrastructure/postgres/postgres-ledger-repository";
 import { PostgresScanStore } from "./infrastructure/postgres/postgres-scan-store";
 import { PostgresSimulatedTransferSource } from "./infrastructure/postgres/postgres-simulated-transfer-source";
-import type { ActivityLog, ChargeRepository, PaymentSimulator } from "./application/ports";
+import type { ActivityLog, ChargeRepository, LedgerRepository, PaymentSimulator } from "./application/ports";
 import type { ScanStore } from "./infrastructure/onchain/onchain-transfer-source";
 import { ripioRampLinkBuilder } from "./infrastructure/ripio-ramp-link";
 import { simulatedCheckoutLinkBuilder } from "./infrastructure/simulated-checkout-link";
@@ -117,6 +119,7 @@ export function chargesConfigFromEnv(env: Env, cwd: string): ChargesConfig {
 type Stores = Readonly<{
   charges: ChargeRepository;
   activity: ActivityLog;
+  ledger: LedgerRepository;
   simulator: () => PaymentSimulator;
   scan: (recipient: Address) => ScanStore;
 }>;
@@ -125,6 +128,7 @@ function postgresStores(db: Database): Stores {
   return {
     charges: new PostgresChargeRepository(db),
     activity: new PostgresActivityLog(db),
+    ledger: new PostgresLedgerRepository(db),
     simulator: () => new PostgresSimulatedTransferSource(db),
     scan: (recipient) => new PostgresScanStore(db, recipient),
   };
@@ -134,6 +138,7 @@ function fileStores(dataDir: string): Stores {
   return {
     charges: new FileChargeRepository(join(dataDir, "charges.json")),
     activity: new FileActivityLog(join(dataDir, "activity.json")),
+    ledger: new FileLedgerRepository(join(dataDir, "ledger.json")),
     simulator: () => new FileSimulatedTransferSource(join(dataDir, "simulated-transfers.json")),
     scan: () => new FileScanStore(join(dataDir, "onchain-scan.json")),
   };
@@ -148,13 +153,14 @@ export function chargesFeatureFromConfig(
   options: { connect?: (url: string) => Database } = {},
 ): ChargesFeature {
   const connect = options.connect ?? connectDatabase;
-  const { charges, activity, simulator, scan } =
+  const { charges, activity, ledger, simulator, scan } =
     config.databaseUrl === undefined ? fileStores(config.dataDir) : postgresStores(connect(config.databaseUrl));
 
   if (config.mode === "simulated") {
     return createChargesFeature({
       charges,
       activity,
+      ledger,
       buildPaymentLink: simulatedCheckoutLinkBuilder({ appUrl: config.appUrl }),
       simulator: simulator(),
     });
@@ -162,6 +168,7 @@ export function chargesFeatureFromConfig(
   return createChargesFeature({
     charges,
     activity,
+    ledger,
     buildPaymentLink: ripioRampLinkBuilder({ recipient: config.recipient }),
     transfers: new OnchainTransferSource({
       reader: viemTransferLogReader({ recipient: config.recipient }),

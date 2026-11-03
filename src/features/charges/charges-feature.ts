@@ -1,8 +1,10 @@
 import { fromDecimalString, money, toDecimalString } from "../../core/money/money";
 import { createChargeUseCase } from "./application/create-charge";
+import { addToLedgerUseCase, chargeFromLedgerUseCase } from "./application/ledger";
 import type {
   ActivityLog,
   ChargeRepository,
+  LedgerRepository,
   PaymentLinkBuilder,
   PaymentSimulator,
   TransferSource,
@@ -10,11 +12,25 @@ import type {
 import { type ReconciliationReport, reconcilePaymentsUseCase } from "./application/reconcile-payments";
 import type { ActivityEntry } from "./domain/activity";
 import { type Charge, type ChargeStatus, newestFirst } from "./domain/charge";
+import { type LedgerEntry, type LedgerEntryStatus, resolveCustomer, summarizeLedger } from "./domain/ledger";
+
+/** Every customer a name could be: one, several when it is ambiguous, or none. */
+function customersNamed(entries: readonly LedgerEntry[], name: string): readonly string[] {
+  const match = resolveCustomer(entries, name);
+  return match.kind === "known" ? [match.customer] : match.kind === "ambiguous" ? match.candidates : [];
+}
 
 export class ChargeNotFoundError extends Error {
   constructor(id: string) {
     super(`Charge ${id} does not exist`);
     this.name = "ChargeNotFoundError";
+  }
+}
+
+export class LedgerUnavailableError extends Error {
+  constructor() {
+    super("This deployment has no ledger configured");
+    this.name = "LedgerUnavailableError";
   }
 }
 
@@ -59,6 +75,33 @@ type Viewed<Entry> = Entry extends unknown
 /** What the agent did, as plain JSON: the amount is a decimal string, never bigint. */
 export type ActivityView = Viewed<ActivityEntry>;
 
+/** A ledger entry as plain JSON: the amount is a decimal string, never bigint. */
+export type LedgerEntryView = Readonly<{
+  id: string;
+  customer: string;
+  description: string;
+  amount: string;
+  currency: string;
+  recordedAt: string;
+  status: LedgerEntryStatus;
+  /** The charge that includes it, once the owner charged it. */
+  chargeId?: string;
+}>;
+
+export type LedgerView = Readonly<{
+  /** The customers in the ledger, the one who owes most first. */
+  customers: readonly Readonly<{
+    customer: string;
+    /** Not paid yet: unbilled entries plus those in pending charges. */
+    owed: string;
+    /** What no charge includes yet: what charging this customer would ask for. */
+    unbilled: string;
+    entries: readonly LedgerEntryView[];
+  }>[];
+  /** What every customer listed owes together. */
+  totalOwed: string;
+}>;
+
 const DEFAULT_LIST_LIMIT = 20;
 
 export type SimulatedPaymentOutcome = "paid" | "already-paid" | "ambiguous";
@@ -74,6 +117,8 @@ export function createChargesFeature(deps: {
   transfers?: TransferSource;
   /** Where every reconciliation leaves what it found, for the owner to see. */
   activity?: ActivityLog;
+  /** The shop's ledger ("libreta") of what customers took and still owe. */
+  ledger?: LedgerRepository;
 }) {
   const transfers = deps.transfers ?? deps.simulator;
   const now = deps.now ?? (() => new Date());
@@ -113,6 +158,26 @@ export function createChargesFeature(deps: {
       throw new ChargeNotFoundError(id);
     }
     return charge;
+  }
+
+  function ledgerOrFail(): LedgerRepository {
+    if (!deps.ledger) {
+      throw new LedgerUnavailableError();
+    }
+    return deps.ledger;
+  }
+
+  function toEntryView(entry: LedgerEntry, status: LedgerEntryStatus): LedgerEntryView {
+    return {
+      id: entry.id,
+      customer: entry.customer,
+      description: entry.description,
+      amount: toDecimalString(entry.amount),
+      currency: entry.amount.currency,
+      recordedAt: entry.recordedAt,
+      status,
+      ...(entry.chargeId === undefined ? {} : { chargeId: entry.chargeId }),
+    };
   }
 
   async function syncPayments(): Promise<ReconciliationReport> {
@@ -179,6 +244,57 @@ export function createChargesFeature(deps: {
         .reverse()
         .slice(0, filter.limit ?? DEFAULT_LIST_LIMIT)
         .map((entry) => ({ ...entry, amount: toDecimalString(entry.amount), currency: entry.amount.currency }));
+    },
+
+    /**
+     * What each customer owes, from the ledger. It reconciles first, so entries whose charge was
+     * paid show as paid.
+     */
+    async readLedger(filter: { customer?: string | undefined }): Promise<LedgerView> {
+      const ledger = ledgerOrFail();
+      await syncPayments();
+      const entries = await ledger.list();
+      const all = summarizeLedger(entries, await deps.charges.list());
+      const wanted = filter.customer === undefined ? undefined : customersNamed(entries, filter.customer);
+      const balances = wanted === undefined ? all : all.filter(({ customer }) => wanted.includes(customer));
+      const totalOwed = balances.reduce((sum, { owed }) => sum + owed.amount, 0n);
+      return {
+        customers: balances.map((balance) => ({
+          customer: balance.customer,
+          owed: toDecimalString(balance.owed),
+          unbilled: toDecimalString(balance.unbilled),
+          entries: balance.entries.map((entry) => toEntryView(entry, entry.status)),
+        })),
+        totalOwed: toDecimalString(money(totalOwed, "wARS")),
+      };
+    },
+
+    /** Writes down that a customer took something and still owes it. */
+    async addToLedger(input: {
+      requestId: string;
+      customer: string;
+      description: string;
+      /** Whole pesos as a decimal string, e.g. "30000". */
+      amount: string;
+    }): Promise<{ entry: LedgerEntryView; created: boolean }> {
+      const add = addToLedgerUseCase({ ledger: ledgerOrFail(), now });
+      const { entry, created } = await add({ ...input, amount: fromDecimalString(input.amount, "wARS") });
+      return { entry: toEntryView(entry, "unbilled"), created };
+    },
+
+    /** Charges a customer for everything in the ledger not charged yet, in one charge. */
+    async chargeFromLedger(input: {
+      requestId: string;
+      customer: string;
+    }): Promise<ChargeView & { entries: readonly string[] }> {
+      const charge = chargeFromLedgerUseCase({
+        ledger: ledgerOrFail(),
+        charges: deps.charges,
+        buildPaymentLink: deps.buildPaymentLink,
+        createCharge,
+      });
+      const result = await charge(input);
+      return { ...toView(result.charge), created: result.created, entries: result.entries.map(({ id }) => id) };
     },
 
     /** Fakes the payer's transfer, then runs the same reconciliation real transfers go through. */

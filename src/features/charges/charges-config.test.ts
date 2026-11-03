@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { PGLITE_STARTUP_MS, testDatabase } from "./infrastructure/postgres/test-database";
 import { PostgresChargeRepository } from "./infrastructure/postgres/postgres-charge-repository";
+import { PostgresLedgerRepository } from "./infrastructure/postgres/postgres-ledger-repository";
 import {
   chargesConfigFromEnv,
   chargesFeatureFromConfig,
@@ -111,5 +112,22 @@ describe("chargesFeatureFromConfig", () => {
     expect(outcome).toBe("paid");
     expect((await new PostgresChargeRepository(db).findById(charge.id))?.status).toBe("paid");
     expect(await feature.listActivity({})).toHaveLength(1);
+    await feature.addToLedger({ requestId: "request-2", customer: "Martina", description: "pan", amount: "5000" });
+    expect((await new PostgresLedgerRepository(db).list()).map(({ id }) => id)).toEqual(["L-0001"]);
+  }, PGLITE_STARTUP_MS);
+});
+
+describe("chargesFeatureFromConfig in ripio mode", () => {
+  it("has the ledger too, so the real payments mode keeps the same assistant", async () => {
+    const db = await testDatabase();
+    const config = chargesConfigFromEnv(
+      { PAYMENTS_MODE: "ripio", BUSINESS_ADDRESS: ADDRESS, DATABASE_URL: "postgres://db.test/charges" },
+      "/nonexistent",
+    );
+    const feature = chargesFeatureFromConfig(config, { connect: () => db });
+
+    const { entry } = await feature.addToLedger({ requestId: "r-1", customer: "Martina", description: "pan", amount: "5000" });
+
+    expect(entry.id).toBe("L-0001");
   }, PGLITE_STARTUP_MS);
 });

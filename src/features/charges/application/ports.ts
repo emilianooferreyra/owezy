@@ -1,6 +1,7 @@
 import type { Money } from "../../../core/money/money";
 import type { ActivityEntry } from "../domain/activity";
 import type { Charge, IncomingTransfer } from "../domain/charge";
+import type { LedgerEntry } from "../domain/ledger";
 
 export interface ChargeRepository {
   findById(id: string): Promise<Charge | undefined>;
@@ -37,5 +38,22 @@ export class ChargeConflictError extends Error {
   constructor(chargeId: string, options?: { cause?: unknown }) {
     super(`Charge ${chargeId} conflicts with one saved at the same time`, options);
     this.name = "ChargeConflictError";
+  }
+}
+
+/** The shop's ledger ("libreta"): what customers took and still owe. */
+export interface LedgerRepository {
+  list(): Promise<readonly LedgerEntry[]>;
+  /** Writes a new entry. Throws LedgerConflictError when another writer took its reference first. */
+  add(entry: LedgerEntry): Promise<void>;
+  /** Links entries to the charge that includes them. Entries already in a charge are left as they are. */
+  assignCharge(entryIds: readonly string[], chargeId: string): Promise<void>;
+}
+
+/** Another writer saved an entry with the same reference first. Reading again and retrying resolves it. */
+export class LedgerConflictError extends Error {
+  constructor(entryId: string, options?: { cause?: unknown }) {
+    super(`Ledger entry ${entryId} conflicts with one saved at the same time`, options);
+    this.name = "LedgerConflictError";
   }
 }
