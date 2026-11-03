@@ -3,6 +3,10 @@
 An AI collections assistant for Argentine small businesses: charge customers in pesos, get paid in
 **wARS** (Ripio's digital peso) on **Celo**, and let the agent reconcile payments for you.
 
+**Live demo:** [sme-treasury-agent.vercel.app/demo](https://sme-treasury-agent.vercel.app/demo). Open
+chat, no account needed. It runs with simulated payments, so try paying a charge from the customer's
+phone on the right.
+
 > Portfolio and learning project. Payments are **simulated by default**: no real money moves unless you
 > explicitly switch to the real Ripio ramp.
 
@@ -77,7 +81,7 @@ Both run from a fresh clone with nothing else to set up. Running the app needs a
 `GROQ_API_KEY`; everything else has a default or is only needed for the real payment mode and the
 agent wallet.
 
-Create `.env.local` (it is git-ignored):
+Create `.env` (it is git-ignored). Not `.env.local`: `eve link` and `vercel env pull` overwrite that one:
 
 | Variable | Required | Description |
 | --- | --- | --- |
@@ -121,12 +125,12 @@ Built:
 - Postgres storage (Neon) when `DATABASE_URL` is set, with the business rules enforced by the
   database too: no two pending charges share an amount, and a transfer pays one charge only.
 - A public demo chat: no account needed, since the agent never moves money.
+- Deployed on Vercel (Hobby) with Neon Postgres: [sme-treasury-agent.vercel.app](https://sme-treasury-agent.vercel.app).
 - An agent wallet whose every transaction carries the ERC-8021 attribution tag, and the agent's
   ERC-8004 identity, registered on Celo Sepolia (see below).
 
 Next:
 
-- Deploying to Vercel. There is **no live demo yet**: run it locally with `pnpm dev`.
 - Registering the identity on Celo mainnet and a first real payment end to end.
 
 Later, phase 2: paying suppliers in Brazil (wARS → USD₮ → wBRL), behind explicit limits and a
@@ -150,5 +154,5 @@ The agent's identity is registered on **Celo Sepolia (testnet)**. Nothing is on 
 | wARS token (mainnet, read by the app) | [`0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d`](https://celoscan.io/token/0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d) |
 
 To register on mainnet: fund the agent wallet with a little CELO, then
-`CELO_NETWORK=mainnet node --env-file=.env.local scripts/register-agent.ts`. The script checks that
+`CELO_NETWORK=mainnet node --env-file=.env scripts/register-agent.ts`. The script checks that
 the transaction carries the attribution tag.
