@@ -87,7 +87,9 @@ Create `.env.local` (it is git-ignored):
 | `BUSINESS_ADDRESS` | with `ripio` | Celo address that receives wARS |
 | `START_BLOCK` | no | With `ripio`: Celo block to start watching payments from. Default: the current block, so only new payments count |
 | `APP_URL` | no | Base URL for simulated payment links. Default `http://localhost:3000` |
-| `DATA_DIR` | no | Where local demo data is stored. Default `./.data` |
+| `DATA_DIR` | no | Where local demo data is stored when there is no database. Default `./.data` |
+| `DATABASE_URL` | on Vercel | Postgres (Neon) connection string. When set, charges and activity live there instead of `DATA_DIR`; on Vercel the app refuses to start without it. Create the tables with `pnpm db:migrate` |
+| `CRON_SECRET` | for the 15-minute reconciliation | Shared secret for `POST /api/cron/reconcile`. The endpoint stays off until it is set |
 | `AGENT_PRIVATE_KEY` | for the agent wallet | Key of the wallet that signs the agent's own transactions. Generate one with `node scripts/new-agent-key.ts` |
 | `CELO_NETWORK` | no | Network for the agent wallet: `sepolia` (default) or `mainnet` |
 | `AGENT_URI` | no | ERC-8004 registration file used by `scripts/register-agent.ts`. Default: `public/agent.json` on GitHub |
@@ -114,13 +116,17 @@ Built:
 - A read-only wallet that shows the real wARS balance.
 
 - An activity log of what the agent reconciles on its own (paid, unmatched and ambiguous transfers).
+  It reconciles once a day as an eve schedule (the Vercel Hobby limit), and every 15 minutes through
+  a GitHub Actions workflow that calls `POST /api/cron/reconcile` with `CRON_SECRET`.
+- Postgres storage (Neon) when `DATABASE_URL` is set, with the business rules enforced by the
+  database too: no two pending charges share an amount, and a transfer pays one charge only.
+- A public demo chat: no account needed, since the agent never moves money.
 - An agent wallet whose every transaction carries the ERC-8021 attribution tag, and the agent's
   ERC-8004 identity, registered on Celo Sepolia (see below).
 
 Next:
 
-- Real persistence (Postgres) to deploy. There is **no live demo yet**: run it locally with
-  `pnpm dev`.
+- Deploying to Vercel. There is **no live demo yet**: run it locally with `pnpm dev`.
 - Registering the identity on Celo mainnet and a first real payment end to end.
 
 Later, phase 2: paying suppliers in Brazil (wARS → USD₮ → wBRL), behind explicit limits and a
