@@ -5,7 +5,7 @@ export { ChargeCard } from "./charge-card";
 export { chargeFromPart } from "./charge-card-model";
 export { DemoProvider, useDemo } from "./demo-context";
 export { CustomerChoice, LedgerCard, LedgerNote } from "./ledger-card";
-export { candidatesFromPart, chargeRequest, greetingFor, ledgerFromPart, noteFromPart } from "./ledger-model";
+export { candidatesFromPart, chargeRequest, greetingFor, lastLedgerReadIndex, ledgerFromPart, noteFromPart } from "./ledger-model";
 export { PayerPhone } from "./payer-phone";
 export { AR, BR, type Country, SHOPS, type Shop, shopContext, shopFor } from "./shops";
 export { SimulatedCheckout } from "./simulated-checkout";

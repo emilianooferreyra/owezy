@@ -24,6 +24,7 @@ import {
   greetingFor,
   LedgerCard,
   LedgerNote,
+  lastLedgerReadIndex,
   ledgerFromPart,
   noteFromPart,
   PayerPhone,
@@ -273,7 +274,9 @@ function OwnerChat({ shop }: { shop: Shop }) {
 
       <div aria-live="polite" className="flex flex-col gap-4 py-5">
         <Greeting shop={shop} version={ledgerWrites} onCharge={charge} disabled={isBusy || isResuming} />
-        {agent.data.messages.map((message) => (
+        {agent.data.messages.map((message) => {
+          const newestLedger = lastLedgerReadIndex(message.parts);
+          return (
           <div
             key={message.id}
             className={cn("flex flex-col gap-2", message.role === "user" ? "items-end" : "items-start")}
@@ -303,6 +306,8 @@ function OwnerChat({ shop }: { shop: Shop }) {
               }
               const ledger = ledgerFromPart(part);
               if (ledger) {
+                // An older read of the same answer: the newest card below already shows it.
+                if (index !== newestLedger) return null;
                 return <LedgerCard key={part.toolCallId} ledger={ledger} currency={shop.currency} onCharge={charge} disabled={isBusy || isResuming} />;
               }
               const note = noteFromPart(part);
@@ -323,7 +328,8 @@ function OwnerChat({ shop }: { shop: Shop }) {
               return null;
             })}
           </div>
-        ))}
+          );
+        })}
         {isBusy && (
           <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> {copy.thinking}

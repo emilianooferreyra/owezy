@@ -140,6 +140,32 @@ describe("demo chat", () => {
     expect(agent.send).toHaveBeenCalledWith("Juan Ruiz", undefined);
   });
 
+  it("shows the ledger once per answer, even when the agent read it twice: the newest read wins", () => {
+    const read = (toolCallId: string, output: unknown) => ({
+      type: "dynamic-tool",
+      toolCallId,
+      toolName: "read_ledger",
+      state: "output-available",
+      input: {},
+      output,
+    });
+    const newer = {
+      customers: [{ ...LEDGER.customers[0], owed: "0", unbilled: "0", entries: [{ ...LEDGER.customers[0]?.entries[0], status: "paid" }] }],
+      totalOwed: "0",
+    };
+    agent.data.messages = [
+      { id: "m1", role: "user", parts: [{ type: "text", text: "Cobrale a Juan lo que debe" }] },
+      { id: "m2", role: "assistant", parts: [read("t1", LEDGER), read("t2", newer), { type: "text", text: "Juan ya pagó." }] },
+    ];
+    // Before the greeting's own ledger loads, so every card on screen comes from the answer.
+    render(<DemoScreen />);
+
+    const cards = within(chat()).getAllByRole("region", { name: "Libreta" });
+    expect(cards).toHaveLength(1);
+    expect(within(cards[0] as HTMLElement).getAllByText("$0").length).toBeGreaterThan(0);
+    expect(within(cards[0] as HTMLElement).queryByText("$57.000")).toBeNull();
+  });
+
   it("shows the agent's **bold** as bold, not as asterisks", () => {
     agent.data.messages = [
       { id: "m1", role: "assistant", parts: [{ type: "text", text: "Listo, el cobro **C-0001** quedó creado." }] },

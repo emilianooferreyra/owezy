@@ -89,6 +89,18 @@ export function ledgerFromPart(part: EveMessagePart): LedgerView | undefined {
   return output === undefined ? undefined : parseLedgerView(output);
 }
 
+/**
+ * Where the newest ledger read sits in one answer, or -1. The agent may read the ledger more than
+ * once in a turn (e.g. before and after charging); the owner sees only the newest card, not copies.
+ */
+export function lastLedgerReadIndex(parts: readonly EveMessagePart[]): number {
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    const part = parts[index];
+    if (part && ledgerFromPart(part) !== undefined) return index;
+  }
+  return -1;
+}
+
 const noteSchema = z.object({ entry: entrySchema });
 
 /** The entry a finished add_to_ledger call wrote down. */
