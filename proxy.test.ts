@@ -29,9 +29,9 @@ describe("proxy", () => {
     expect(proxy(request("/en/how-it-works", "pt-BR"))).toBeUndefined();
   });
 
-  it("never runs on the API, the agent or public files", () => {
+  it("never runs on the API, the agent, the generated icons or public files", () => {
     const matcher = new RegExp(`^${config.matcher[0]?.replace("/((?!", "/(?!(?:").replace(").*)", ")).*")}$`);
-    for (const path of ["/api/ledger", "/eve/v1/sessions", "/agent.json", "/_next/static/x.js"]) {
+    for (const path of ["/api/ledger", "/eve/v1/sessions", "/agent.json", "/_next/static/x.js", "/icon", "/apple-icon"]) {
       expect(matcher.test(path), path).toBe(false);
     }
     expect(matcher.test("/demo")).toBe(true);

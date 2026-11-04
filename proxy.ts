@@ -18,6 +18,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Not the API, the agent (/eve), Next.js internals or files such as /agent.json.
-  matcher: ["/((?!api|eve|_next|_vercel|.*\\..*).*)"],
+  // Not the API, the agent (/eve), Next.js internals, the generated icons or files such as /agent.json.
+  matcher: ["/((?!api|eve|_next|_vercel|icon|apple-icon|.*\\..*).*)"],
 };
