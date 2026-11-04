@@ -38,19 +38,39 @@ const LEDGER = {
   totalOwed: "57000",
 };
 
-/** The demo's routes: the ledger answers with LEDGER (or `ledgerStatus`), the rest with nothing. */
+/** What the agent reconciled on its own, as /api/activity answers it. */
+const PAYMENT = {
+  id: "payment-matched:tx-1",
+  kind: "payment-matched",
+  transferId: "tx-1",
+  amount: "57000",
+  currency: "wARS",
+  receivedAt: "2026-11-03T17:05:00.000Z",
+  recordedAt: "2026-11-03T17:15:00.000Z",
+  chargeId: "C-0001",
+  customer: "Juan Pérez",
+};
+
+/** The demo's routes: the ledger answers with LEDGER (or `ledgerStatus`), the activity with `activity`. */
 let ledgerStatus = 200;
+let activity: unknown[] = [];
 beforeEach(() => {
   agent.status = "ready";
   agent.send = vi.fn(() => Promise.resolve());
   agent.data.messages = [];
   ledgerStatus = 200;
+  activity = [];
+  try {
+    localStorage.clear();
+  } catch {
+    // No storage: nothing to clear.
+  }
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) =>
       String(url).startsWith("/api/ledger")
         ? new Response(JSON.stringify(LEDGER), { status: ledgerStatus })
-        : new Response(JSON.stringify({ activity: [], charges: [] })),
+        : new Response(JSON.stringify({ activity, charges: [] })),
     ),
   );
 });
@@ -109,6 +129,49 @@ describe("demo chat", () => {
     fireEvent.click(within(chat()).getByRole("button", { name: /Actividad/ }));
 
     expect(within(chat()).getByRole("region", { name: "Lo que hice solo" })).toBeTruthy();
+  });
+
+  it("rings the bell with what the agent did on its own that the owner has not seen yet", async () => {
+    activity = [PAYMENT];
+    render(<DemoScreen />);
+
+    const bell = await within(chat()).findByRole("button", { name: "Actividad, 1 nueva" });
+    expect(within(bell).getByText("1")).toBeTruthy();
+
+    fireEvent.click(bell);
+
+    expect(within(chat()).getByRole("region", { name: "Lo que hice solo" })).toBeTruthy();
+    expect(within(chat()).getByRole("button", { name: "Actividad" })).toBeTruthy();
+  });
+
+  it("does not ring again for what the owner already saw, even after reloading", async () => {
+    activity = [PAYMENT];
+    const first = render(<DemoScreen />);
+    fireEvent.click(await within(chat()).findByRole("button", { name: "Actividad, 1 nueva" }));
+    first.unmount();
+
+    render(<DemoScreen />);
+
+    expect(await within(chat()).findByRole("button", { name: "Actividad" })).toBeTruthy();
+    expect(within(chat()).queryByRole("button", { name: /nueva/ })).toBeNull();
+  });
+
+  it("closes the activity with its X, with Escape, or by tapping outside it", () => {
+    render(<DemoScreen />);
+    const open = () => fireEvent.click(within(chat()).getByRole("button", { name: /Actividad/ }));
+    const panel = () => within(chat()).queryByRole("region", { name: "Lo que hice solo" });
+
+    open();
+    fireEvent.click(within(panel() as HTMLElement).getByRole("button", { name: "Cerrar" }));
+    expect(panel()).toBeNull();
+
+    open();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(panel()).toBeNull();
+
+    open();
+    fireEvent.pointerDown(within(chat()).getByRole("textbox"));
+    expect(panel()).toBeNull();
   });
 
   it("answers with cards: the ledger, what was written down, and which customer when a name is ambiguous", () => {
@@ -182,7 +245,7 @@ describe("demo countries", () => {
     await renderPage("pt-BR");
 
     expect(screen.getByRole("heading", { level: 1, name: "Padaria da Bia" })).toBeTruthy();
-    expect(screen.getByText("Seu assistente de cobranças em reais")).toBeTruthy();
+    expect(screen.getByText("Seu assistente de cobranças")).toBeTruthy();
     expect(await screen.findByText("Oi, Bia! Hoje te devem R$ 57.000 entre 1 cliente.")).toBeTruthy();
     expect(fetchedUrls()).toContain("/api/ledger?currency=wBRL");
     expect(fetchedUrls().some((url) => url.includes("currency=wARS"))).toBe(false);
@@ -203,16 +266,16 @@ describe("demo countries", () => {
     expect(fetchedUrls()).toContain("/api/ledger?currency=wARS");
   });
 
-  it("switches country with links that keep the language, marking the current one", async () => {
+  it("keeps the header to the shop, the bell and the wallet: no country or language switch", async () => {
     await renderPage("es-AR");
 
-    const countries = screen.getByRole("group", { name: "País" });
-    const argentina = within(countries).getByRole("link", { name: /Argentina/ });
-    const brasil = within(countries).getByRole("link", { name: /Brasil/ });
-    expect(argentina.getAttribute("href")).toBe("/es-AR/demo?country=AR");
-    expect(brasil.getAttribute("href")).toBe("/es-AR/demo?country=BR");
-    expect(argentina.getAttribute("aria-current")).toBe("true");
-    expect(brasil.getAttribute("aria-current")).toBeNull();
+    const header = screen.getByRole("region", { name: "Negocio" }).querySelector("header") as HTMLElement;
+    expect(within(header).getByRole("heading", { level: 1, name: "Panadería de Ana" })).toBeTruthy();
+    expect(within(header).getByText("Tu asistente de cobros")).toBeTruthy();
+    expect(within(header).getByRole("button", { name: /Actividad/ })).toBeTruthy();
+    expect(within(header).queryByRole("group", { name: "País" })).toBeNull();
+    expect(within(header).queryByRole("navigation", { name: "Idioma" })).toBeNull();
+    expect(within(header).queryByText("Dónde recibís tus cobros")).toBeNull();
   });
 
   it("asks the activity of the shop's country only", async () => {
@@ -259,18 +322,21 @@ describe("demo countries", () => {
     expect(within(chat()).getByRole("link", { name: /Inicio/ }).getAttribute("href")).toBe("/es-AR");
   });
 
-  it("has the language switcher in the shop's header, not floating over the page", async () => {
-    await renderPage("en");
+  it("goes home through Owezy's logo next to the shop's name, not an arrow", () => {
+    render(<DemoScreen />);
 
-    const shop = screen.getByRole("region", { name: "Shop" });
-    const switcher = within(shop).getByRole("navigation", { name: "Language" });
-    expect(switcher.closest("header")).toBeTruthy();
+    const home = within(chat()).getByRole("link", { name: "Inicio" });
+    expect(home.querySelector("[data-owezy-mark]")).toBeTruthy();
+    expect(home.querySelector(".lucide-arrow-left")).toBeNull();
+    expect(home.closest("header")?.querySelector("h1")).toBeTruthy();
   });
 
-  it("lets the shop connect the wallet where its payments arrive, right under the country switch", async () => {
+  it("puts the wallet in the header's top row, next to the bell", async () => {
     await renderPage("es-AR");
 
-    const shop = screen.getByRole("region", { name: "Negocio" });
-    expect(within(shop).getByText("Dónde recibís tus cobros")).toBeTruthy();
+    const bell = screen.getByRole("button", { name: /Actividad/ });
+    const row = bell.closest("[data-header-actions]") as HTMLElement;
+    expect(row).toBeTruthy();
+    expect(within(row).getByText(/billetera|Conectar/i)).toBeTruthy();
   });
 });

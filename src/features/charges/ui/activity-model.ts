@@ -76,3 +76,13 @@ export function activityLine(entry: ActivityView, locale: Locale = DEFAULT_LOCAL
       };
   }
 }
+
+/** When the agent recorded its newest entry: what the owner has seen once they open the activity. */
+export function newestRecordedAt(activity: readonly ActivityView[]): string | undefined {
+  return activity.reduce<string | undefined>((newest, { recordedAt }) => (newest && newest >= recordedAt ? newest : recordedAt), undefined);
+}
+
+/** How many entries the agent recorded after `seenAt` (ISO timestamps compare as text). */
+export function unreadCount(activity: readonly ActivityView[], seenAt: string | undefined): number {
+  return activity.filter(({ recordedAt }) => seenAt === undefined || recordedAt > seenAt).length;
+}

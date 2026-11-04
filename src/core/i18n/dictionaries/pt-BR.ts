@@ -187,10 +187,8 @@ export const ptBR = {
     greetingLoading: "Oi, {owner}! Estou olhando a caderneta…",
     greetingFailed: "Oi, {owner}! Me conta o que alguém levou, ou de quem você quer cobrar.",
     activity: "Atividade",
-    subtitle: { AR: "Seu assistente de cobranças em pesos", BR: "Seu assistente de cobranças em reais" },
+    subtitle: "Seu assistente de cobranças",
     home: "Início",
-    country: "País",
-    countries: { AR: "Argentina", BR: "Brasil" },
     toolError: "Não deu para concluir: {error}",
     thinking: "Pensando…",
     message: "Mensagem",
@@ -276,6 +274,9 @@ export const ptBR = {
     explorer: "Ver a transação no Celoscan",
   },
   activity: {
+    close: "Fechar",
+    unreadOne: "{label}, 1 nova",
+    unreadMany: "{label}, {count} novas",
     title: "O que eu fiz sozinho",
     loading: "Carregando…",
     empty: "Ainda não conciliei nenhum pagamento.",
@@ -289,7 +290,6 @@ export const ptBR = {
   wallet: {
     group: "Carteiras",
     connect: "Conectar carteira",
-    where: "Onde você recebe suas cobranças",
     notConfigured: "A conexão de carteiras não está configurada neste ambiente.",
     arrivesAt: "Suas cobranças vão chegar em",
     balanceIn: "Saldo em {token}",
@@ -297,5 +297,6 @@ export const ptBR = {
     readingBalance: "Lendo saldo",
     celoscan: "Ver no Celoscan",
     disconnect: "Desconectar",
+    pendingRequest: "Abra o MetaMask: tem uma solicitação de conexão esperando.",
   },
 } satisfies Dictionary;

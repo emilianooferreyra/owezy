@@ -1,21 +1,22 @@
 "use client";
 
 import { useEveAgent } from "eve/react";
-import { ArrowLeft, ArrowUp, Bot, LoaderCircle, Smartphone, Store } from "lucide-react";
+import { ArrowUp, Bell, LoaderCircle, Smartphone, Store } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { type FormEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { format, localePath } from "@/core/i18n";
 import { useI18n } from "@/core/i18n/i18n-provider";
-import { LanguageSwitcher } from "@/core/i18n/language-switcher";
 import { cn } from "@/core/lib/utils";
 import { Button } from "@/core/ui/button";
 import { InlineMarkdown } from "@/core/ui/inline-markdown";
+import { OwezyMark } from "@/core/ui/owezy-mark";
+import { useDismiss } from "@/core/ui/use-dismiss";
 import { Input } from "@/core/ui/input";
 import { WalletSection } from "@/features/wallet/ui";
 import {
   AR,
-  ActivityPanel,
+  ActivityList,
   CustomerChoice,
   candidatesFromPart,
   ChargeCard,
@@ -27,13 +28,15 @@ import {
   LedgerNote,
   lastLedgerReadIndex,
   ledgerFromPart,
+  newestRecordedAt,
   noteFromPart,
   PayerPhone,
-  SHOPS,
   type Shop,
   shopContext,
   useDemo,
   useLedger,
+  unreadCount,
+  useActivity,
 } from "@/features/charges/ui";
 
 /**
@@ -156,53 +159,84 @@ function Greeting({
   );
 }
 
-/**
- * Argentina or Brazil. Each is a link to the same page with ?country=, so the choice can be
- * shared, and the page mounts a fresh demo for it instead of mixing two shops in one chat.
- */
-function CountrySwitch({ shop }: { shop: Shop }) {
-  const { locale, dict } = useI18n();
-  return (
-    <div role="group" aria-label={dict.demo.country} className="inline-flex rounded-full bg-secondary p-0.5">
-      {SHOPS.map((option) => {
-        const current = option.country === shop.country;
-        return (
-          <Link
-            key={option.country}
-            href={`${localePath(locale, "/demo")}?country=${option.country}`}
-            aria-current={current ? "true" : undefined}
-            replace
-            scroll={false}
-            className={cn(
-              "inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-xs font-medium transition-colors",
-              current ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <span aria-hidden="true">{option.flag}</span> {dict.demo.countries[option.country]}
-          </Link>
-        );
-      })}
-    </div>
-  );
+/** Where the bell remembers what the owner already saw, per shop, so a reload does not ring again. */
+const seenKey = (shop: Shop) => `owezy.activity.seen.${shop.currency}`;
+
+function readSeen(shop: Shop): string | undefined {
+  try {
+    return localStorage.getItem(seenKey(shop)) ?? undefined;
+  } catch {
+    return undefined;
+  }
 }
 
-/** What the agent reconciled on its own, one tap away in the header instead of above the chat. */
-function ActivityToggle({ shop }: { shop: Shop }) {
+function writeSeen(shop: Shop, seenAt: string) {
+  try {
+    localStorage.setItem(seenKey(shop), seenAt);
+  } catch {
+    // No storage (private window): the bell only forgets what was seen on reload.
+  }
+}
+
+/**
+ * What the agent reconciled on its own, as a bell in the header: a badge counts what the owner
+ * has not seen yet, and the panel closes with its X, with Escape, or by tapping outside it.
+ */
+function ActivityBell({ shop }: { shop: Shop }) {
   const [open, setOpen] = useState(false);
-  const copy = useI18n().dict.demo;
+  const [seenAt, setSeenAt] = useState<string | undefined>(undefined);
+  const box = useRef<HTMLDivElement>(null);
+  const activity = useActivity(shop.currency);
+  const { dict } = useI18n();
+  const label = dict.demo.activity;
+
+  useEffect(() => setSeenAt(readSeen(shop)), [shop]);
+
+  // While the panel is open, everything on it counts as seen, including what arrives meanwhile.
+  const newest = activity ? newestRecordedAt(activity) : undefined;
+  useEffect(() => {
+    if (!open || newest === undefined) return;
+    setSeenAt(newest);
+    writeSeen(shop, newest);
+  }, [open, newest, shop]);
+
+  const close = useCallback(() => setOpen(false), []);
+  useDismiss(open, close, box);
+
+  const unread = activity && !open ? unreadCount(activity, seenAt) : 0;
+  const name =
+    unread === 0
+      ? label
+      : format(unread === 1 ? dict.activity.unreadOne : dict.activity.unreadMany, { label, count: String(unread) });
   return (
-    <div className="relative">
+    <div ref={box} className="relative">
       <Button
         type="button"
         variant="ghost"
-        size="sm"
+        size="icon-sm"
         aria-expanded={open}
+        aria-label={name}
+        title={label}
         onClick={() => setOpen((value) => !value)}
-        className="cursor-pointer"
+        className="relative cursor-pointer"
       >
-        <Bot aria-hidden="true" /> {copy.activity}
+        <Bell aria-hidden="true" className={cn(unread > 0 && "motion-safe:animate-ring")} />
+        {unread > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold leading-4 text-white"
+          >
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
       </Button>
-      {open && <ActivityPanel currency={shop.currency} className="absolute right-0 top-full z-30 mt-2 w-80" />}
+      {open && (
+        <ActivityList
+          activity={activity}
+          onClose={close}
+          className="absolute right-0 top-full z-30 mt-2 w-80 max-w-[calc(100vw-2rem)]"
+        />
+      )}
     </div>
   );
 }
@@ -253,27 +287,18 @@ function OwnerChat({ shop }: { shop: Shop }) {
 
   return (
     <div className="mx-auto grid min-h-full max-w-2xl grid-rows-[auto_1fr_auto] px-4">
-      <header className="flex flex-wrap items-center gap-3 border-b py-5">
-        <span aria-hidden="true" className="grid size-10 place-items-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-          {shop.name.charAt(0)}
-        </span>
+      <header className="flex items-center gap-3 border-b py-5">
+        {/* Owezy's logo is the way home, next to the shop's name, as in the landing's navbar. */}
+        <Link href={localePath(locale, "/")} aria-label={copy.home} title={copy.home} className="shrink-0 rounded-lg transition-transform hover:-rotate-6">
+          <OwezyMark size={40} />
+        </Link>
         <div>
           <h1 className="text-lg font-semibold leading-tight">{shop.name}</h1>
-          <p className="text-sm text-muted-foreground">{copy.subtitle[shop.country]}</p>
+          <p className="text-sm text-muted-foreground">{copy.subtitle}</p>
         </div>
-        <div className="ml-auto flex items-center gap-1">
-          <LanguageSwitcher className="mr-1" />
-          <ActivityToggle shop={shop} />
-          <Button asChild variant="ghost" size="sm">
-            <Link href={localePath(locale, "/")}>
-              <ArrowLeft aria-hidden="true" /> {copy.home}
-            </Link>
-          </Button>
-        </div>
-        <CountrySwitch shop={shop} />
-        {/* Where the shop's payments arrive: connect the wallet, read-only, to see its balance. */}
-        <div className="flex w-full flex-wrap items-center justify-between gap-2">
-          <span className="text-sm text-muted-foreground">{dict.wallet.where}</span>
+        {/* Only what the owner acts on: the bell, and the wallet where the payments arrive. */}
+        <div data-header-actions="" className="ml-auto flex items-center gap-1">
+          <ActivityBell shop={shop} />
           <WalletSection />
         </div>
       </header>

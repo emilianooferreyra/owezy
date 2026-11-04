@@ -187,10 +187,8 @@ export const en = {
     greetingLoading: "Hi, {owner}! I'm checking the ledger…",
     greetingFailed: "Hi, {owner}! Tell me what someone took, or who you want to charge.",
     activity: "Activity",
-    subtitle: { AR: "Your collections assistant in pesos", BR: "Your collections assistant in reais" },
+    subtitle: "Your collections assistant",
     home: "Home",
-    country: "Country",
-    countries: { AR: "Argentina", BR: "Brazil" },
     toolError: "Could not complete: {error}",
     thinking: "Thinking…",
     message: "Message",
@@ -276,6 +274,9 @@ export const en = {
     explorer: "View the transaction on Celoscan",
   },
   activity: {
+    close: "Close",
+    unreadOne: "{label}, 1 new",
+    unreadMany: "{label}, {count} new",
     title: "What I did on my own",
     loading: "Loading…",
     empty: "No payments reconciled yet.",
@@ -289,7 +290,6 @@ export const en = {
   wallet: {
     group: "Wallets",
     connect: "Connect wallet",
-    where: "Where your payments arrive",
     notConfigured: "Wallet connection is not configured in this environment.",
     arrivesAt: "Your charges will arrive at",
     balanceIn: "{token} balance",
@@ -297,5 +297,6 @@ export const en = {
     readingBalance: "Reading balance",
     celoscan: "View on Celoscan",
     disconnect: "Disconnect",
+    pendingRequest: "Open MetaMask: a connection request is waiting there.",
   },
 } satisfies Dictionary;

@@ -188,10 +188,8 @@ export const esAR = {
     greetingLoading: "¡Hola, {owner}! Estoy revisando la libreta…",
     greetingFailed: "¡Hola, {owner}! Contame qué se llevó alguien, o a quién querés cobrarle.",
     activity: "Actividad",
-    subtitle: { AR: "Tu asistente de cobros en pesos", BR: "Tu asistente de cobros en reales" },
+    subtitle: "Tu asistente de cobros",
     home: "Inicio",
-    country: "País",
-    countries: { AR: "Argentina", BR: "Brasil" },
     toolError: "No se pudo completar: {error}",
     thinking: "Pensando…",
     message: "Mensaje",
@@ -277,6 +275,9 @@ export const esAR = {
     explorer: "Ver la transacción en Celoscan",
   },
   activity: {
+    close: "Cerrar",
+    unreadOne: "{label}, 1 nueva",
+    unreadMany: "{label}, {count} nuevas",
     title: "Lo que hice solo",
     loading: "Cargando…",
     empty: "Todavía no concilié ningún pago.",
@@ -290,7 +291,6 @@ export const esAR = {
   wallet: {
     group: "Billeteras",
     connect: "Conectar billetera",
-    where: "Dónde recibís tus cobros",
     notConfigured: "La conexión de billeteras no está configurada en este entorno.",
     arrivesAt: "Tus cobros llegarán a",
     balanceIn: "Saldo en {token}",
@@ -298,6 +298,7 @@ export const esAR = {
     readingBalance: "Leyendo saldo",
     celoscan: "Ver en Celoscan",
     disconnect: "Desconectar",
+    pendingRequest: "Abrí MetaMask: tenés una solicitud de conexión esperando.",
   },
 };
 

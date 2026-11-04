@@ -1,9 +1,10 @@
 "use client";
 
-import { Bot } from "lucide-react";
+import { Bot, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/core/lib/utils";
 import { Badge } from "@/core/ui/badge";
+import { Button } from "@/core/ui/button";
 import { useI18n } from "@/core/i18n/i18n-provider";
 import { type Currency, DEFAULT_CURRENCY } from "../../../core/money/money";
 import type { ActivityView } from "../charges-feature";
@@ -15,7 +16,7 @@ export const ACTIVITY_POLL_INTERVAL_MS = 5000;
  * Keeps the agent's activity log current. The route only reads the log, so polling it is cheap.
  * A failed poll keeps the last list: the next one tries again. Only the shop's `currency` is read.
  */
-function useActivity(currency: Currency): readonly ActivityView[] | undefined {
+export function useActivity(currency: Currency): readonly ActivityView[] | undefined {
   const [activity, setActivity] = useState<readonly ActivityView[]>();
 
   useEffect(() => {
@@ -44,7 +45,19 @@ function useActivity(currency: Currency): readonly ActivityView[] | undefined {
 
 /** What the agent reconciled on its own, newest first, so the owner sees it without asking. */
 export function ActivityPanel({ className, currency = DEFAULT_CURRENCY }: { className?: string; currency?: Currency }) {
-  const activity = useActivity(currency);
+  return <ActivityList activity={useActivity(currency)} className={className} />;
+}
+
+/** The activity already read by someone else (the header's bell), with an X when it can close. */
+export function ActivityList({
+  activity,
+  className,
+  onClose,
+}: {
+  activity: readonly ActivityView[] | undefined;
+  className?: string | undefined;
+  onClose?: () => void;
+}) {
   const { locale, dict } = useI18n();
   const copy = dict.activity;
 
@@ -53,9 +66,16 @@ export function ActivityPanel({ className, currency = DEFAULT_CURRENCY }: { clas
       aria-labelledby="activity-title"
       className={cn("grid gap-2 rounded-3xl bg-card px-4 py-3 shadow-sm ring-1 ring-foreground/5", className)}
     >
-      <h2 id="activity-title" className="inline-flex items-center gap-2 text-sm font-semibold">
-        <Bot className="size-4" aria-hidden="true" /> {copy.title}
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 id="activity-title" className="inline-flex items-center gap-2 text-sm font-semibold">
+          <Bot className="size-4" aria-hidden="true" /> {copy.title}
+        </h2>
+        {onClose && (
+          <Button type="button" variant="ghost" size="icon-xs" onClick={onClose} aria-label={copy.close} className="cursor-pointer">
+            <X aria-hidden="true" />
+          </Button>
+        )}
+      </div>
       {activity === undefined ? (
         <p className="text-sm text-muted-foreground">{copy.loading}</p>
       ) : activity.length === 0 ? (

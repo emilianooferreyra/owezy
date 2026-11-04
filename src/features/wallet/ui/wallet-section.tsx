@@ -9,7 +9,7 @@ import { Button } from "@/core/ui/button";
 function ConnectPlaceholder() {
   const copy = useI18n().dict.wallet;
   return (
-    <Button size="lg" variant="outline" disabled>
+    <Button size="sm" variant="outline" disabled>
       <Wallet aria-hidden="true" />
       {copy.connect}
     </Button>
@@ -24,7 +24,7 @@ const WalletWidget = dynamic(() => import("./wallet-widget").then((module) => mo
   loading: ConnectPlaceholder,
 });
 
-/** The wallet in the demo, under the country switch: connect and see the real wARS and wBRL balances on Celo, without slowing the page down. */
+/** The wallet in the demo's header, next to the bell: connect and see the real wARS and wBRL balances on Celo, without slowing the page down. */
 export function WalletSection() {
   const { locale, dict } = useI18n();
   // Written out in full: Next.js inlines NEXT_PUBLIC_ variables at build time only on literal access.

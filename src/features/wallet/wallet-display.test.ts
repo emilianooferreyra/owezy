@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatTokenBalance, formatWarsBalance, shortAddress } from "./wallet-display";
+import { formatTokenBalance, formatWarsBalance, shortAddress, isPendingWalletRequest } from "./wallet-display";
 
 const UNIT = 10n ** 18n;
 
@@ -30,5 +30,18 @@ describe("formatTokenBalance", () => {
 
   it("shows a wARS balance as pesos", () => {
     expect(formatTokenBalance(85_000n * UNIT, "wARS")).toBe("$85.000");
+  });
+});
+
+describe("isPendingWalletRequest", () => {
+  it("spots MetaMask's 'request already pending' (-32002), however deep the libraries wrap it", () => {
+    const metamask = { code: -32002, message: "Request of type 'wallet_requestPermissions' already pending" };
+    expect(isPendingWalletRequest(metamask)).toBe(true);
+    expect(isPendingWalletRequest(new Error("Connection failed", { cause: new Error("wrapped", { cause: metamask }) }))).toBe(true);
+  });
+
+  it("leaves other failures alone: a rejected request is the owner's choice", () => {
+    expect(isPendingWalletRequest({ code: 4001, message: "User rejected the request." })).toBe(false);
+    expect(isPendingWalletRequest(undefined)).toBe(false);
   });
 });
