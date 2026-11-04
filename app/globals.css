@@ -7,25 +7,28 @@
 /* Theme from the shadcn preset (b1VlIvXU), plus our own tokens for success, test mode and the phone mock.
    Dark mode is class based (`.dark` on <html>), as the preset defines it. */
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.99 0.008 100);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.42 0.1 130);
+  --primary-foreground: oklch(0.99 0.01 110);
+  --secondary: oklch(0.96 0.02 110);
+  --secondary-foreground: oklch(0.3 0.07 130);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: oklch(0.96 0.04 112);
+  --accent-foreground: oklch(0.3 0.07 130);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --ring: oklch(0.6 0.12 125);
   --success: oklch(55% 0.15 155);
+  /* Celo's yellow: the one loud color, for highlights only */
+  --highlight: oklch(0.96 0.18 112);
+  --highlight-foreground: oklch(0.3 0.07 130);
   /* Test mode, Stripe style */
   --test: oklch(77% 0.16 65);
   --test-foreground: oklch(28% 0.06 55);
@@ -64,6 +67,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -125,18 +130,18 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.94 0.17 112);
+  --primary-foreground: oklch(0.25 0.05 130);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
+  --accent: oklch(0.32 0.06 130);
+  --accent-foreground: oklch(0.94 0.17 112);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --ring: oklch(0.7 0.14 115);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -151,6 +156,8 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
   --success: oklch(72% 0.16 155);
+  --highlight: oklch(0.94 0.17 112);
+  --highlight-foreground: oklch(0.25 0.05 130);
   --test-foreground: oklch(85% 0.12 75);
   --test-muted: oklch(30% 0.06 65);
   --phone-frame: oklch(0% 0 0);
