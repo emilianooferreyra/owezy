@@ -83,7 +83,7 @@ describe("SampleLedger", () => {
     renderSample();
     expect(screen.queryByText("Lucía Fernández")).toBeNull();
 
-    later(14_500);
+    later(15_800);
     expect(row("Lucía Fernández").className).toContain("bg-highlight/50");
 
     later(3_000);
@@ -97,7 +97,7 @@ describe("SampleLedger", () => {
 
   it("plays only once: nothing changes after the story ends", () => {
     renderSample();
-    later(16_000);
+    later(17_000);
     const after = total();
 
     later(20_000);

@@ -102,7 +102,8 @@ const STORY: readonly { linkAt: number; paidAt?: number }[] = [
   // A longer breath after Carlos pays, so Martina's link does not rush in on top of it.
   { linkAt: LOOK_FIRST + 10_500 },
 ];
-const WRITTEN_DOWN_AT = LOOK_FIRST + 12_300;
+// A second after Martina's note settles, so Lucía does not arrive all at once.
+const WRITTEN_DOWN_AT = LOOK_FIRST + 13_300;
 const FRESH_FOR = 1_800;
 const COUNT_MS = 900;
 const COUNT_STEPS = 18;
