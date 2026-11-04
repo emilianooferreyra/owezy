@@ -117,4 +117,18 @@ describe("how it works page", () => {
       "https://celo-sepolia.blockscout.com/address/0xEA93f4D017BFF57a4E79CFC19b98BDb6CeA4f99c",
     );
   });
+
+  it("uses the landing's demo button: white, with the shaking ledger mascot instead of an arrow", async () => {
+    render(await HowItWorksPage(pageProps("es-AR")));
+
+    const buttons = screen.getAllByRole("link", { name: /Probar la demo/ }).filter((link) => link.className.includes("bg-card"));
+    expect(buttons).toHaveLength(2);
+    for (const button of buttons) {
+      expect(button.getAttribute("data-variant")).toBe("outline");
+      expect(button.querySelector(".lucide-arrow-right")).toBeNull();
+      expect(button.querySelector("[data-owezy-mark]")?.parentElement?.getAttribute("class")).toContain(
+        "group-hover:animate-shake",
+      );
+    }
+  });
 });

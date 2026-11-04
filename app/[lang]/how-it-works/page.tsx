@@ -23,6 +23,7 @@ import { type Dictionary, getDictionary, hasLocale, type Locale, localePath } fr
 import { Badge } from "@/core/ui/badge";
 import { Button } from "@/core/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/core/ui/card";
+import { OwezyMark } from "@/core/ui/owezy-mark";
 import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
 
@@ -75,9 +76,13 @@ function IconBadge({ icon: Icon }: { icon: LucideIcon }) {
 function Actions({ lang, common }: { lang: Locale; common: Dictionary["common"] }) {
   return (
     <div className="flex flex-wrap gap-3">
-      <Button asChild size="lg">
+      {/* The landing's demo button: white, so the green ledger mascot on it stands out. */}
+      <Button asChild size="lg" variant="outline" className="group bg-card shadow-sm hover:bg-card">
         <Link href={localePath(lang, "/demo")}>
-          {common.tryDemo} <ArrowRight aria-hidden="true" />
+          {common.tryDemo}
+          <span className="inline-flex motion-safe:group-hover:animate-shake">
+            <OwezyMark size={20} />
+          </span>
         </Link>
       </Button>
       <Button asChild size="lg" variant="outline">
