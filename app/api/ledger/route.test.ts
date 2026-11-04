@@ -35,7 +35,7 @@ describe("GET /api/ledger (simulated mode)", () => {
     const { feature, route } = await loadRoute();
     await feature.addToLedger({ requestId: "seed:1", customer: "Juan Pérez", description: "torta", amount: "30000" });
 
-    const response = await route.GET();
+    const response = await route.GET(new Request("http://localhost/api/ledger"));
 
     expect(response.status).toBe(200);
     const body = await response.json();
@@ -46,6 +46,27 @@ describe("GET /api/ledger (simulated mode)", () => {
   it("returns an empty ledger before anything is written down", async () => {
     const { route } = await loadRoute();
 
-    expect(await (await route.GET()).json()).toEqual({ customers: [], totalOwed: "0" });
+    expect(await (await route.GET(new Request("http://localhost/api/ledger"))).json()).toEqual({ customers: [], totalOwed: "0" });
+  });
+  it("returns a Brazilian shop's ledger in reais, without the Argentine customers", async () => {
+    const { feature, route } = await loadRoute();
+    await feature.addToLedger({ requestId: "seed:1", customer: "Juan Pérez", description: "torta", amount: "30000" });
+    await feature.addToLedger({ requestId: "seed:2", customer: "João Silva", description: "bolo", amount: "120", currency: "wBRL" });
+
+    const response = await route.GET(new Request("http://localhost/api/ledger?currency=wBRL"));
+    const body = await response.json();
+
+    expect(body.customers.map(({ customer }: { customer: string }) => customer)).toEqual(["João Silva"]);
+    expect(body.totalOwed).toBe("120");
+    expect(body.customers[0].entries[0].currency).toBe("wBRL");
+  });
+
+  it("rejects a currency the app does not know", async () => {
+    const { route } = await loadRoute();
+
+    const response = await route.GET(new Request("http://localhost/api/ledger?currency=USD"));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "unknown-currency" });
   });
 });

@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { AmbiguousCustomerError, chargesRuntime, NothingToChargeError } from "../../src/features/charges";
+import { AmbiguousCustomerError, chargesRuntime, NothingToChargeError, shopCurrency } from "../../src/features/charges";
 
 export default defineTool({
   description:
@@ -9,6 +9,7 @@ export default defineTool({
     "never charged twice. Pass the customer's name as the ledger has it.",
   inputSchema: z.object({
     customer: z.string().trim().min(1).max(80).describe('Who to charge, e.g. "Juan Pérez".'),
+    currency: shopCurrency,
   }),
   label: {
     start: ({ customer }) => `Cobrarle a ${customer} lo de la libreta`,

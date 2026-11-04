@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { AmbiguousCustomerError, chargesRuntime } from "../../src/features/charges";
+import { formatMoney } from "../../src/core/money/money";
+import { AmbiguousCustomerError, chargesRuntime, shopCurrency } from "../../src/features/charges";
 
 export default defineTool({
   description:
@@ -13,10 +14,11 @@ export default defineTool({
     amount: z
       .string()
       .regex(/^\d+(\.\d+)?$/)
-      .describe('Amount in whole pesos as a plain decimal string, e.g. "30000". No thousands separators.'),
+      .describe('Amount in whole units of the currency as a plain decimal string, e.g. "30000". No thousands separators.'),
+    currency: shopCurrency,
   }),
   label: {
-    start: ({ customer, amount }) => `Anotar $${amount} a ${customer}`,
+    start: ({ customer, amount, currency }) => `Anotar ${formatMoney(amount, currency ?? "wARS")} a ${customer}`,
   },
   async execute(input, ctx) {
     // Session + turn identify the request, so a retried step does not write the entry twice.

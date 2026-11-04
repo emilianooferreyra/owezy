@@ -18,4 +18,5 @@ export {
 export { AmbiguousCustomerError, NothingToChargeError } from "./application/ledger";
 export { isChargeReference } from "./domain/charge";
 export { chargesRuntime } from "./runtime";
+export { shopCurrency } from "./shop-currency";
 export { reconcileOnSchedule } from "./scheduled-reconciliation";

@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { chargesRuntime } from "../../src/features/charges";
+import { chargesRuntime, shopCurrency } from "../../src/features/charges";
 
 export default defineTool({
   description:
@@ -16,6 +16,7 @@ export default defineTool({
       .max(80)
       .optional()
       .describe('Only this customer; a first name is enough ("Martina"). Leave it out to read every customer.'),
+    currency: shopCurrency,
   }),
   label: {
     start: ({ customer }) => (customer ? `Revisar la libreta de ${customer}` : "Revisar la libreta"),

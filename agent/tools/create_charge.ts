@@ -1,10 +1,11 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { chargesRuntime } from "../../src/features/charges";
+import { formatMoney } from "../../src/core/money/money";
+import { chargesRuntime, shopCurrency } from "../../src/features/charges";
 
 export default defineTool({
   description:
-    "Create a charge in Argentine pesos (wARS) for a customer and get the link they open to pay. " +
+    "Create a charge in the shop's currency for a customer and get the link they open to pay. " +
     "The charge gets its own reference (e.g. C-0007): never ask the owner for one.",
   inputSchema: z.object({
     customer: z.string().trim().min(1).max(80).describe('Who pays, e.g. "Juan Pérez".'),
@@ -17,10 +18,11 @@ export default defineTool({
     amount: z
       .string()
       .regex(/^\d+(\.\d+)?$/)
-      .describe('Amount in whole pesos as a plain decimal string, e.g. "85000" or "85000.5". No thousands separators.'),
+      .describe('Amount in whole units of the currency as a plain decimal string, e.g. "85000" or "85000.5". No thousands separators.'),
+    currency: shopCurrency,
   }),
   label: {
-    start: ({ customer, amount }) => `Cobrar $${amount} a ${customer}`,
+    start: ({ customer, amount, currency }) => `Cobrar ${formatMoney(amount, currency ?? "wARS")} a ${customer}`,
   },
   async execute(input, ctx) {
     // An interrupted step re-runs within the same turn, so session + turn identify this request:

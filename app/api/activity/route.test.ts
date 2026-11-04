@@ -41,7 +41,7 @@ describe("GET /api/activity (simulated mode)", () => {
     });
     await feature.simulatePayment("C-0001");
 
-    const response = await route.GET();
+    const response = await route.GET(new Request("http://localhost/api/activity"));
 
     expect(response.status).toBe(200);
     expect((await response.json()).activity).toMatchObject([
@@ -53,8 +53,29 @@ describe("GET /api/activity (simulated mode)", () => {
     const { feature, route } = await loadRoute();
     const sync = vi.spyOn(feature, "syncPayments");
 
-    await route.GET();
+    await route.GET(new Request("http://localhost/api/activity"));
 
     expect(sync).not.toHaveBeenCalled();
+  });
+  it("rejects a currency the app does not know", async () => {
+    const { route } = await loadRoute();
+
+    const response = await route.GET(new Request("http://localhost/api/activity?currency=USD"));
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "unknown-currency" });
+  });
+
+  it("shows only the Brazilian shop's activity when asked in reais", async () => {
+    const { feature, route } = await loadRoute();
+    const charge = await feature.createCharge({ requestId: "t1", customer: "João", description: "pão", amount: "20", currency: "wBRL" });
+    await feature.simulatePayment(charge.id);
+
+    const brazil = await (await route.GET(new Request("http://localhost/api/activity?currency=wBRL"))).json();
+    const argentina = await (await route.GET(new Request("http://localhost/api/activity"))).json();
+
+    expect(brazil.activity.length).toBeGreaterThan(0);
+    expect(brazil.activity.every(({ currency }: { currency: string }) => currency === "wBRL")).toBe(true);
+    expect(argentina.activity).toEqual([]);
   });
 });

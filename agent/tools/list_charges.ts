@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { chargesRuntime } from "../../src/features/charges";
+import { chargesRuntime, shopCurrency } from "../../src/features/charges";
 
 const STATUS_LABEL = { pending: "pendientes", paid: "cobrados" } as const;
 
@@ -15,6 +15,7 @@ export default defineTool({
       .enum(["pending", "paid"])
       .optional()
       .describe("Only pending (still owed) or only paid charges. Leave it out to list every charge."),
+    currency: shopCurrency,
   }),
   label: {
     start: ({ status }) => (status ? `Revisar cobros ${STATUS_LABEL[status]}` : "Revisar cobros"),
