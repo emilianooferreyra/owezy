@@ -51,6 +51,29 @@ describe("activityLine", () => {
   });
 });
 
+describe("activityLine for a Brazilian shop", () => {
+  const brazilian = { ...base, currency: "wBRL", amount: "850" };
+
+  it("shows reais and São Paulo time, in the page's language", () => {
+    expect(activityLine({ ...matched, ...brazilian, customer: "João Silva" }, "pt-BR")).toEqual({
+      time: "14:05",
+      text: "João Silva pagou a cobrança C-0001 (R$ 850)",
+      needsOwner: false,
+    });
+    expect(activityLine({ ...ambiguous, ...brazilian }, "en")).toEqual({
+      time: "14:05",
+      text: "A payment of R$ 850 arrived that could be C-0001 or C-0002: please choose which",
+      needsOwner: true,
+    });
+  });
+
+  it("reads the time in the shop's own time zone", () => {
+    const winter = "2026-07-01T12:00:00.000Z";
+    // Buenos Aires and São Paulo are both UTC-3 all year: the zone comes from the currency anyway.
+    expect(activityLine({ ...unmatched, ...brazilian, receivedAt: winter }, "pt-BR").time).toBe("09:00");
+  });
+});
+
 describe("parseActivity", () => {
   it("reads the route's answer", () => {
     expect(parseActivity({ activity: [matched, unmatched] })).toEqual([matched, unmatched]);

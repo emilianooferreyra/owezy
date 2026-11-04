@@ -5,20 +5,18 @@ import { useState } from "react";
 import { Button } from "@/core/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/core/ui/card";
 import type { ChargeView } from "../charges-feature";
-import { formatArs, parseChargeView, receiptFor } from "./charge-card-model";
+import { format } from "@/core/i18n";
+import { useI18n } from "@/core/i18n/i18n-provider";
+import { chargeAmount, parseChargeView, receiptFor } from "./charge-card-model";
 import { ReceiptView } from "./receipt-view";
+import { shopOfCurrency } from "./shops";
 
 type State = "idle" | "paying" | "ambiguous" | "error";
 
-const MESSAGES: Partial<Record<State, string>> = {
-  ambiguous:
-    "El pago llegó, pero hay otro cobro pendiente por el mismo monto: el negocio tiene que asignarlo a mano.",
-  error: "No se pudo simular el pago. Probá de nuevo.",
-};
-
 /**
  * The payer's checkout for a simulated charge. Inside the demo phone, `onPaid` hands the paid
- * charge to the page; on its own page it shows the receipt in place.
+ * charge to the page; on its own page it shows the receipt in place. The copy follows the page's
+ * language; the amount and how the payer pays follow the charge's currency.
  */
 export function SimulatedCheckout({
   charge: initial,
@@ -29,7 +27,9 @@ export function SimulatedCheckout({
 }) {
   const [charge, setCharge] = useState(initial);
   const [state, setState] = useState<State>("idle");
-  const receipt = receiptFor(charge);
+  const { locale, dict } = useI18n();
+  const copy = dict.checkout;
+  const receipt = receiptFor(charge, locale);
 
   async function pay() {
     setState("paying");
@@ -67,19 +67,20 @@ export function SimulatedCheckout({
     );
   }
 
-  const message = MESSAGES[state];
+  const message = state === "ambiguous" ? copy.ambiguous : state === "error" ? copy.error : undefined;
+  const payLabel = format(copy.pay, { amount: chargeAmount(charge) });
 
   return (
     <Card className="text-center">
       <CardHeader className="justify-items-center">
         <CardDescription>
-          Cobro <span className="font-mono">{charge.id}</span> · {charge.customer}
+          {copy.charge} <span className="font-mono">{charge.id}</span> · {charge.customer}
         </CardDescription>
         <CardTitle>{charge.description}</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-2">
-        <p className="text-4xl font-semibold tracking-tight">{formatArs(charge.amount)}</p>
-        <p className="text-muted-foreground">Pagás en pesos desde tu banco con Ripio, y el negocio recibe wARS en Celo.</p>
+        <p className="text-4xl font-semibold tracking-tight">{chargeAmount(charge)}</p>
+        <p className="text-muted-foreground">{copy.howYouPay[shopOfCurrency(charge.currency).country]}</p>
       </CardContent>
       <CardFooter className="flex-col gap-3">
         <Button
@@ -90,11 +91,11 @@ export function SimulatedCheckout({
         >
           {state === "paying" ? (
             <>
-              <LoaderCircle className="animate-spin" aria-hidden="true" /> Procesando…
+              <LoaderCircle className="animate-spin" aria-hidden="true" /> {copy.processing}
             </>
           ) : (
             <>
-              <Lock aria-hidden="true" /> Pagar {formatArs(charge.amount)}
+              <Lock aria-hidden="true" /> {payLabel}
             </>
           )}
         </Button>

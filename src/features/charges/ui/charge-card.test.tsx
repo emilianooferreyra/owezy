@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "@/core/i18n/i18n-provider";
 import type { ChargeView } from "../charges-feature";
 import { ChargeCard } from "./charge-card";
 import { DemoProvider, useDemo } from "./demo-context";
@@ -73,6 +74,62 @@ describe("ChargeCard", () => {
 
     expect(screen.getAllByLabelText("Cobro C-0001")).toHaveLength(2);
     expect(errors).not.toHaveBeenCalled();
+  });
+
+  it("shows the amount in the charge's own currency: pesos for Argentina, reais for Brazil", () => {
+    render(
+      <DemoProvider>
+        <ChargeCard charge={CHARGE} />
+        <ChargeCard charge={{ ...CHARGE, id: "C-0002", amount: "850", currency: "wBRL" }} />
+      </DemoProvider>,
+    );
+
+    expect(within(screen.getByLabelText("Cobro C-0001")).getByText("$85.000")).toBeTruthy();
+    expect(within(screen.getByLabelText("Cobro C-0002")).getByText("R$ 850")).toBeTruthy();
+    expect(screen.queryByText("ARS")).toBeNull();
+  });
+
+  it("speaks the page's language", () => {
+    render(
+      <I18nProvider locale="pt-BR">
+        <DemoProvider>
+          <ChargeCard charge={{ ...CHARGE, currency: "wBRL", amount: "850" }} />
+        </DemoProvider>
+      </I18nProvider>,
+    );
+    expect(screen.getByLabelText("Cobrança C-0001")).toBeTruthy();
+    expect(screen.getByText("Pendente")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Enviar para Juan" })).toBeTruthy();
+    cleanup();
+
+    render(
+      <I18nProvider locale="en">
+        <DemoProvider>
+          <ChargeCard charge={CHARGE} />
+        </DemoProvider>
+      </I18nProvider>,
+    );
+    expect(screen.getByRole("button", { name: "Copy link" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Send to Juan" }));
+    expect(screen.getByRole("form", { name: "Juan's contact" })).toBeTruthy();
+  });
+
+  it("asks a Brazilian customer's mobile in Brazil's format and sends it to WhatsApp with 55", () => {
+    render(
+      <DemoProvider>
+        <ChargeCard charge={{ ...CHARGE, currency: "wBRL", amount: "850" }} />
+      </DemoProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enviar a Juan" }));
+    const form = screen.getByRole("form", { name: "Contacto de Juan" });
+
+    expect(within(form).getByPlaceholderText("11 91234-5678")).toBeTruthy();
+    fireEvent.change(within(form).getByLabelText("Celular"), { target: { value: "11 91234-5678" } });
+    fireEvent.submit(form);
+
+    expect(screen.getByRole("link", { name: /Abrir en WhatsApp/ }).getAttribute("href")).toMatch(
+      /^https:\/\/wa\.me\/5511912345678\?text=/,
+    );
   });
 
   describe("sending the charge to the customer", () => {

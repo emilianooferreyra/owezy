@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "@/core/i18n/i18n-provider";
 import type { LedgerView } from "../charges-feature";
 import { CustomerChoice, LedgerCard, LedgerNote } from "./ledger-card";
 
@@ -66,7 +67,49 @@ describe("LedgerCard", () => {
   });
 });
 
+describe("LedgerCard for a Brazilian shop", () => {
+  const brazilian: LedgerView = {
+    customers: [
+      { customer: "João Silva", owed: "570", unbilled: "570", entries: [{ ...entry("L-0001", "pão de queijo", "570", "unbilled"), currency: "wBRL" }] },
+    ],
+    totalOwed: "570",
+  };
+
+  it("shows the total and each customer in reais", () => {
+    render(<LedgerCard ledger={brazilian} currency="wBRL" onCharge={() => {}} />);
+
+    const card = screen.getByRole("region", { name: "Libreta" });
+    expect(within(card).getAllByText("R$ 570")).toHaveLength(2);
+    expect(within(card).queryByText("$570")).toBeNull();
+  });
+
+  it("speaks Portuguese and English under those locales", () => {
+    render(
+      <I18nProvider locale="pt-BR">
+        <LedgerCard ledger={brazilian} currency="wBRL" onCharge={() => {}} />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole("region", { name: "Caderneta" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Cobrar João Silva" })).toBeTruthy();
+    cleanup();
+
+    render(
+      <I18nProvider locale="en">
+        <LedgerCard ledger={{ customers: [], totalOwed: "0" }} currency="wBRL" onCharge={() => {}} />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole("region", { name: "Ledger" })).toBeTruthy();
+    expect(screen.getByText("Nothing written down yet.")).toBeTruthy();
+  });
+});
+
 describe("LedgerNote", () => {
+  it("shows a Brazilian entry in reais", () => {
+    render(<LedgerNote entry={{ ...entry("L-0009", "coxinha", "45", "unbilled"), currency: "wBRL" }} />);
+
+    expect(screen.getByRole("status").textContent).toContain("R$ 45");
+  });
+
   it("confirms what was written down, for whom and how much", () => {
     render(<LedgerNote entry={{ ...entry("L-0009", "pastafrola", "8000", "unbilled"), customer: "Martina Gómez" }} />);
 

@@ -1,7 +1,9 @@
 import type { EveMessagePart } from "eve/react";
 import { z } from "zod";
-import { formatArs } from "../../../core/money/money";
+import { DEFAULT_LOCALE, format, getDictionary, type Locale } from "../../../core/i18n";
+import { formatMoney } from "../../../core/money/money";
 import type { ChargeView } from "../charges-feature";
+import { type Country, currencyOf, timeZoneOf } from "./shops";
 
 // The tools whose output is a charge the owner can send: each shows as a charge card.
 const CHARGE_TOOLS = new Set(["create_charge", "charge_from_ledger"]);
@@ -78,11 +80,24 @@ export function chargeFromPart(part: EveMessagePart): ChargeView | undefined {
   return parseChargeView(part.output);
 }
 
-export { formatArs };
+/** A charge's amount the way its country writes it: "$85.000" for wARS, "R$ 850" for wBRL. */
+export function chargeAmount(charge: Pick<ChargeView, "amount" | "currency">): string {
+  return formatMoney(charge.amount, currencyOf(charge.currency));
+}
 
-/** The message the owner sends the payer, in the simulated phone or through WhatsApp. */
-export function paymentMessage(charge: ChargeView, firstName = charge.customer.split(/\s+/)[0] ?? charge.customer): string {
-  return `¡Hola ${firstName}! Te paso el link para pagar ${charge.description} (${charge.id}) por ${formatArs(charge.amount)}: ${charge.paymentLink}`;
+/** The message the owner sends the payer, in the simulated phone or through WhatsApp, in the page's language. */
+export function paymentMessage(
+  charge: ChargeView,
+  firstName = charge.customer.split(/\s+/)[0] ?? charge.customer,
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return format(getDictionary(locale).charges.paymentMessage, {
+    name: firstName,
+    description: charge.description,
+    id: charge.id,
+    amount: chargeAmount(charge),
+    link: charge.paymentLink,
+  });
 }
 
 /**
@@ -90,8 +105,7 @@ export function paymentMessage(charge: ChargeView, firstName = charge.customer.s
  * undefined when it cannot be read with certainty. The local "15" prefix is rejected rather than
  * guessed: area codes have two to four digits, so it is unclear where they end.
  */
-export function whatsAppNumber(input: string): string | undefined {
-  const digits = input.replace(/\D/g, "");
+function argentineWhatsAppNumber(digits: string): string | undefined {
   if (digits.length === 13 && digits.startsWith("549")) {
     return digits;
   }
@@ -108,19 +122,42 @@ export function whatsAppNumber(input: string): string | undefined {
 }
 
 /**
+ * A Brazilian mobile number in WhatsApp's format (55 + two-digit DDD + nine digits starting with
+ * 9), or undefined. Landlines (eight digits) are rejected: they do not have WhatsApp as a rule.
+ */
+function brazilianWhatsAppNumber(digits: string): string | undefined {
+  const national = digits.length === 13 && digits.startsWith("55")
+    ? digits.slice(2)
+    : digits.length === 12 && digits.startsWith("0")
+      ? digits.slice(1)
+      : digits;
+  return national.length === 11 && !national.startsWith("0") && national[2] === "9" ? `55${national}` : undefined;
+}
+
+/** A customer's mobile in WhatsApp's international format, read the way their country writes it. */
+export function whatsAppNumber(input: string, country: Country = "AR"): string | undefined {
+  const digits = input.replace(/\D/g, "");
+  return country === "BR" ? brazilianWhatsAppNumber(digits) : argentineWhatsAppNumber(digits);
+}
+
+/**
  * A wa.me link that opens the owner's WhatsApp on the customer's chat, with the payment message
  * ready. The owner presses send: nothing goes out on its own, and the customer sees a number
  * they already know.
  */
-export function whatsAppShareUrl(charge: ChargeView, contact: { firstName: string; phone: string }): string {
-  return `https://wa.me/${contact.phone}?text=${encodeURIComponent(paymentMessage(charge, contact.firstName))}`;
+export function whatsAppShareUrl(
+  charge: ChargeView,
+  contact: { firstName: string; phone: string },
+  locale: Locale = DEFAULT_LOCALE,
+): string {
+  return `https://wa.me/${contact.phone}?text=${encodeURIComponent(paymentMessage(charge, contact.firstName, locale))}`;
 }
 
 export type Receipt = Readonly<{
   reference: string;
   /** The paying transfer's id: the operation number. */
   operation: string;
-  /** Local time in Argentina, dd/mm/yyyy hh:mm. */
+  /** The shop's local time, dd/mm/yyyy hh:mm (mm/dd/yyyy in English). */
   paidAt: string;
   customer: string;
   description: string;
@@ -132,25 +169,30 @@ export type Receipt = Readonly<{
   explorerUrl?: string;
 }>;
 
-const ARGENTINA_TIME = new Intl.DateTimeFormat("es-AR", {
-  timeZone: "America/Argentina/Buenos_Aires",
-  day: "2-digit",
-  month: "2-digit",
-  year: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
-
-function formatArgentinaTime(iso: string): string {
-  const parts = Object.fromEntries(
-    ARGENTINA_TIME.formatToParts(new Date(iso)).map((part) => [part.type, part.value]),
-  );
-  return `${parts.day}/${parts.month}/${parts.year} ${parts.hour}:${parts.minute}`;
+/**
+ * Day, month, year and time in the shop's time zone, ordered the way the page's language writes
+ * dates: 17/10/2026 12:05 in Spanish and Portuguese, 10/17/2026 12:05 in English.
+ */
+function formatLocalTime(iso: string, currency: string, locale: Locale): string {
+  const parts = new Intl.DateTimeFormat(locale, {
+    timeZone: timeZoneOf(currency),
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  const date = parts
+    .filter(({ type }) => type === "day" || type === "month" || type === "year")
+    .map((part) => part.value)
+    .join("/");
+  return `${date} ${value("hour")}:${value("minute")}`;
 }
 
 /** The receipt of a paid charge, or undefined while it is pending. */
-export function receiptFor(charge: ChargeView): Receipt | undefined {
+export function receiptFor(charge: ChargeView, locale: Locale = DEFAULT_LOCALE): Receipt | undefined {
   if (charge.status !== "paid" || charge.paidAt === undefined || charge.paidBy === undefined) {
     return undefined;
   }
@@ -160,11 +202,11 @@ export function receiptFor(charge: ChargeView): Receipt | undefined {
   return {
     reference: charge.id,
     operation: charge.paidBy,
-    paidAt: formatArgentinaTime(charge.paidAt),
+    paidAt: formatLocalTime(charge.paidAt, charge.currency, locale),
     customer: charge.customer,
     description: charge.description,
-    amount: formatArs(charge.amount),
-    method: "Ripio · wARS en Celo",
+    amount: chargeAmount(charge),
+    method: format(getDictionary(locale).receipt.method, { token: currencyOf(charge.currency) }),
     simulated,
     ...(simulated || !txHash ? {} : { explorerUrl: `https://celoscan.io/tx/${txHash}` }),
   };

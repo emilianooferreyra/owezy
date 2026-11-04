@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { I18nProvider } from "@/core/i18n/i18n-provider";
 import type { ActivityView } from "../charges-feature";
 import { ACTIVITY_POLL_INTERVAL_MS, ActivityPanel } from "./activity-panel";
 
@@ -80,7 +81,7 @@ describe("ActivityPanel", () => {
     await settle();
     await settle(ACTIVITY_POLL_INTERVAL_MS);
 
-    expect(fetch).toHaveBeenCalledWith("/api/activity", expect.anything());
+    expect(fetch).toHaveBeenCalledWith("/api/activity?currency=wARS", expect.anything());
     expect(screen.getByText("Juan Pérez pagó el cobro C-0001 ($85.000)")).toBeTruthy();
   });
 
@@ -95,6 +96,32 @@ describe("ActivityPanel", () => {
     await settle(ACTIVITY_POLL_INTERVAL_MS);
 
     expect(screen.getByText("Juan Pérez pagó el cobro C-0001 ($85.000)")).toBeTruthy();
+  });
+
+  it("reads only the shop's country: a Brazilian shop asks for wBRL and sees reais", async () => {
+    const fetch = stubActivityEndpoint([
+      () => Response.json({ activity: [{ ...matched, currency: "wBRL", amount: "850", customer: "João Silva" }] }),
+    ]);
+
+    render(<ActivityPanel currency="wBRL" />);
+    await settle();
+
+    expect(fetch).toHaveBeenCalledWith("/api/activity?currency=wBRL", expect.anything());
+    expect(screen.getByText("João Silva pagó el cobro C-0001 (R$ 850)")).toBeTruthy();
+  });
+
+  it("speaks the page's language", async () => {
+    stubActivityEndpoint([() => Response.json({ activity: [] })]);
+
+    render(
+      <I18nProvider locale="en">
+        <ActivityPanel />
+      </I18nProvider>,
+    );
+    await settle();
+
+    expect(screen.getByRole("heading", { name: "What I did on my own" })).toBeTruthy();
+    expect(screen.getByText("No payments reconciled yet.")).toBeTruthy();
   });
 
   it("stops polling once it is gone", async () => {

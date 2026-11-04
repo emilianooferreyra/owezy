@@ -5,7 +5,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/core/ui/button";
 import { Card, CardContent } from "@/core/ui/card";
 import type { ChargeView } from "../charges-feature";
-import { formatArs, paymentMessage, receiptFor } from "./charge-card-model";
+import { format } from "@/core/i18n";
+import { useI18n } from "@/core/i18n/i18n-provider";
+import { chargeAmount, paymentMessage, receiptFor } from "./charge-card-model";
 import { useDemo } from "./demo-context";
 import { ReceiptView } from "./receipt-view";
 import { SimulatedCheckout } from "./simulated-checkout";
@@ -15,17 +17,18 @@ const SCREEN_TRANSITION = { type: "spring", stiffness: 420, damping: 38 } as con
 /** The customer's side of the demo: the messages they get, the checkout and the receipt. */
 export function PayerPhone({ businessName }: { businessName: string }) {
   const { state, dispatch } = useDemo();
+  const { locale, dict } = useI18n();
   const sent = state.sent.flatMap((id) => {
     const charge = state.charges[id];
     return charge ? [charge] : [];
   });
   const current = state.phone.screen === "inbox" ? undefined : state.charges[state.phone.chargeId];
-  const receipt = state.phone.screen === "receipt" && current ? receiptFor(current) : undefined;
+  const receipt = state.phone.screen === "receipt" && current ? receiptFor(current, locale) : undefined;
   const screenKey = state.phone.screen === "inbox" ? "inbox" : `${state.phone.screen}-${state.phone.chargeId}`;
 
   return (
     <div
-      aria-label="Celular del cliente"
+      aria-label={dict.payer.phoneLabel}
       className="relative mx-auto grid h-[min(42rem,calc(100dvh-9rem))] min-h-[30rem] w-full max-w-[22rem] grid-rows-[auto_1fr] overflow-hidden rounded-[2.75rem] border-[10px] border-phone-frame bg-phone-screen shadow-2xl"
     >
       <div aria-hidden="true" className="absolute left-1/2 top-1.5 z-10 h-6 w-24 -translate-x-1/2 rounded-full bg-phone-frame" />
@@ -37,7 +40,7 @@ export function PayerPhone({ businessName }: { businessName: string }) {
             onClick={() => dispatch({ type: "phone-back" })}
             className="inline-flex items-center gap-0.5 text-sm font-medium"
           >
-            <ChevronLeft className="size-4" aria-hidden="true" /> Mensajes
+            <ChevronLeft className="size-4" aria-hidden="true" /> {dict.payer.messages}
           </button>
         ) : (
           <>
@@ -92,12 +95,10 @@ function Inbox({
   onPay: (id: string) => void;
   onReceipt: (id: string) => void;
 }) {
+  const { locale, dict } = useI18n();
+  const copy = dict.payer;
   if (charges.length === 0) {
-    return (
-      <p className="mx-4 mt-8 text-center text-sm text-muted-foreground">
-        Cuando el negocio te mande un cobro, te llega acá.
-      </p>
-    );
+    return <p className="mx-4 mt-8 text-center text-sm text-muted-foreground">{copy.empty}</p>;
   }
 
   return (
@@ -114,17 +115,17 @@ function Inbox({
               transition={{ type: "spring", stiffness: 420, damping: 30 }}
               className="grid max-w-[88%] gap-2 rounded-3xl rounded-tl-lg bg-card p-3 shadow-sm"
             >
-              <p className="text-sm">{paymentMessage(charge).replace(charge.paymentLink, "").trimEnd()}</p>
+              <p className="text-sm">{paymentMessage(charge, undefined, locale).replace(charge.paymentLink, "").trimEnd()}</p>
               <Button
                 size="sm"
                 variant={isPaid ? "secondary" : "default"}
                 onClick={() => (isPaid ? onReceipt(charge.id) : onPay(charge.id))}
               >
                 {isPaid ? (
-                  "Pagado · Ver comprobante"
+                  copy.paidReceipt
                 ) : (
                   <>
-                    <Lock aria-hidden="true" /> Pagar {formatArs(charge.amount)}
+                    <Lock aria-hidden="true" /> {format(copy.pay, { amount: chargeAmount(charge) })}
                   </>
                 )}
               </Button>

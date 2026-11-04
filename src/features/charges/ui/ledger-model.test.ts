@@ -10,6 +10,7 @@ import {
   noteFromPart,
   parseLedgerView,
 } from "./ledger-model";
+import { BR } from "./shops";
 
 const entry = (id: string, description: string, amount: string, status: "unbilled" | "charged" | "paid") => ({
   id,
@@ -69,7 +70,32 @@ describe("greetingFor", () => {
   });
 });
 
+describe("greetingFor in Brazil and in English", () => {
+  const brazilian: LedgerView = {
+    customers: [
+      { customer: "João Silva", owed: "570", unbilled: "570", entries: [{ ...entry("L-0001", "pão de queijo", "570", "unbilled"), currency: "wBRL" }] },
+    ],
+    totalOwed: "570",
+  };
+
+  it("greets Bia in Portuguese with what her shop is owed in reais", () => {
+    expect(greetingFor(brazilian, BR, "pt-BR")).toBe("Oi, Bia! Hoje te devem R$ 570 entre 1 cliente.");
+  });
+
+  it("greets in English, in the shop's currency", () => {
+    expect(greetingFor(brazilian, BR, "en")).toBe("Hi, Bia! Today you are owed R$ 570 by 1 customer.");
+    expect(greetingFor({ customers: [], totalOwed: "0" }, BR, "en")).toBe(
+      "Hi, Bia! Nobody owes you anything. Tell me what someone took and I'll write it down.",
+    );
+  });
+});
+
 describe("chargeRequest", () => {
+  it("is written in the page's language", () => {
+    expect(chargeRequest("João Silva", "pt-BR")).toBe("Cobra o que João Silva deve");
+    expect(chargeRequest("João Silva", "en")).toBe("Charge João Silva what they owe");
+  });
+
   it("is what the owner would type to charge a customer from the ledger", () => {
     expect(chargeRequest("Juan Pérez")).toBe("Cobrale a Juan Pérez lo que debe");
   });

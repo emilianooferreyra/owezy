@@ -7,11 +7,12 @@ import { createConfig, http } from "wagmi";
  * Read-only wallet setup on Celo: the business connects the wallet its charges arrive at. Browser
  * wallets (MiniPay inside Opera included) connect directly; mobile ones (Valora) through
  * WalletConnect, which needs the project id. Reads go through Celo's public RPC (forno), so the
- * wallet never has to switch networks or sign anything.
+ * wallet never has to switch networks or sign anything. `groupName` heads the wallet list, in
+ * the page's language.
  */
-export function createWalletConfig(projectId: string) {
+export function createWalletConfig(projectId: string, groupName = "Billeteras") {
   const connectors = connectorsForWallets(
-    [{ groupName: "Billeteras", wallets: [injectedWallet, metaMaskWallet, valoraWallet] }],
+    [{ groupName, wallets: [injectedWallet, metaMaskWallet, valoraWallet] }],
     { appName: "Owezy", projectId },
   );
 

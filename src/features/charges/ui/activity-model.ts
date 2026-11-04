@@ -1,6 +1,8 @@
 import { z } from "zod";
-import { formatArs } from "../../../core/money/money";
+import { DEFAULT_LOCALE, format, getDictionary, type Locale } from "../../../core/i18n";
+import { formatMoney } from "../../../core/money/money";
 import type { ActivityView } from "../charges-feature";
+import { currencyOf, timeZoneOf } from "./shops";
 
 const event = {
   transferId: z.string(),
@@ -38,34 +40,38 @@ export function parseActivity(body: unknown): readonly ActivityView[] | undefine
   return parsed.success ? parsed.data.activity : undefined;
 }
 
-const ARGENTINA_CLOCK = new Intl.DateTimeFormat("es-AR", {
-  timeZone: "America/Argentina/Buenos_Aires",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
+/** A clock in the page's language, set to the time zone of the shop that got paid. */
+function clockTime(iso: string, currency: string, locale: Locale): string {
+  return new Intl.DateTimeFormat(locale, {
+    timeZone: timeZoneOf(currency),
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(new Date(iso));
+}
 
 export type ActivityLine = Readonly<{
-  /** When the money arrived, in Argentine time. */
+  /** When the money arrived, in the shop's local time. */
   time: string;
   text: string;
   /** True when the agent could not decide and the owner has to look at it. */
   needsOwner: boolean;
 }>;
 
-/** One entry of the activity log, as the owner reads it. */
-export function activityLine(entry: ActivityView): ActivityLine {
-  const time = ARGENTINA_CLOCK.format(new Date(entry.receivedAt));
-  const amount = formatArs(entry.amount);
+/** One entry of the activity log, as the owner reads it: in their language and their currency. */
+export function activityLine(entry: ActivityView, locale: Locale = DEFAULT_LOCALE): ActivityLine {
+  const copy = getDictionary(locale).activity;
+  const time = clockTime(entry.receivedAt, entry.currency, locale);
+  const amount = formatMoney(entry.amount, currencyOf(entry.currency));
   switch (entry.kind) {
     case "payment-matched":
-      return { time, text: `${entry.customer} pagó el cobro ${entry.chargeId} (${amount})`, needsOwner: false };
+      return { time, text: format(copy.matched, { customer: entry.customer, chargeId: entry.chargeId, amount }), needsOwner: false };
     case "payment-unmatched":
-      return { time, text: `Llegó un pago de ${amount} que no coincide con ningún cobro`, needsOwner: true };
+      return { time, text: format(copy.unmatched, { amount }), needsOwner: true };
     case "payment-ambiguous":
       return {
         time,
-        text: `Llegó un pago de ${amount} que puede ser de ${entry.chargeIds.join(" o ")}: elegí vos cuál`,
+        text: format(copy.ambiguous, { amount, chargeIds: entry.chargeIds.join(copy.or) }),
         needsOwner: true,
       };
   }

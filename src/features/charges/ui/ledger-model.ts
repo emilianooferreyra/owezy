@@ -1,9 +1,10 @@
 import type { EveMessagePart } from "eve/react";
 import { z } from "zod";
-import { formatArs } from "../../../core/money/money";
+import { DEFAULT_LOCALE, format, getDictionary, type Locale } from "../../../core/i18n";
+import { formatMoney } from "../../../core/money/money";
 import type { LedgerEntryView, LedgerView } from "../charges-feature";
+import { AR, type Shop } from "./shops";
 
-const OWNER_NAME = "Ana";
 const decimal = z.string().regex(/^\d+(\.\d+)?$/);
 
 // Tool outputs and the ledger route reach the browser as `unknown`, so they are validated first.
@@ -52,18 +53,27 @@ export function customerState(customer: CustomerView): "to-charge" | "link-sent"
   return Number(customer.owed) > 0 ? "link-sent" : "up-to-date";
 }
 
-/** The agent's first line, written from the ledger instead of a fixed script. */
-export function greetingFor(ledger: LedgerView): string {
+/**
+ * The agent's first line, written from the ledger instead of a fixed script: addressed to the
+ * shop's owner, in the shop's currency (a ledger holds one country's entries) and the page's language.
+ */
+export function greetingFor(ledger: LedgerView, shop: Shop = AR, locale: Locale = DEFAULT_LOCALE): string {
+  const copy = getDictionary(locale).ledger;
   const owing = ledger.customers.filter((customer) => Number(customer.owed) > 0).length;
   if (owing === 0) {
-    return `¡Hola, ${OWNER_NAME}! Nadie te debe nada. Contame qué se llevó alguien y lo anoto.`;
+    return format(copy.greetingNobody, { owner: shop.owner });
   }
-  return `¡Hola, ${OWNER_NAME}! Hoy te deben ${formatArs(ledger.totalOwed)} entre ${owing} ${owing === 1 ? "cliente" : "clientes"}.`;
+  return format(copy.greetingOwed, {
+    owner: shop.owner,
+    total: formatMoney(ledger.totalOwed, shop.currency),
+    count: owing,
+    customers: owing === 1 ? copy.customerOne : copy.customerMany,
+  });
 }
 
 /** What the owner would type to charge a customer from the ledger: the "Cobrar" button sends it. */
-export function chargeRequest(customer: string): string {
-  return `Cobrale a ${customer} lo que debe`;
+export function chargeRequest(customer: string, locale: Locale = DEFAULT_LOCALE): string {
+  return format(getDictionary(locale).ledger.chargeRequest, { customer });
 }
 
 function finishedOutput(part: EveMessagePart, toolNames: readonly string[]): unknown {

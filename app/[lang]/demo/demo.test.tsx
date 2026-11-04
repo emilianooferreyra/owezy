@@ -8,9 +8,21 @@ const agent = vi.hoisted(() => ({
   data: { messages: [] as unknown[] },
   error: undefined,
   send: (() => Promise.resolve()) as (message: string) => Promise<void>,
+  /** What the demo passed to useEveAgent, to check what every turn carries. */
+  options: undefined as { prepareSend?: (input: { message: string }) => unknown } | undefined,
 }));
-vi.mock("eve/react", () => ({ useEveAgent: () => agent }));
+vi.mock("eve/react", () => ({
+  useEveAgent: (options: typeof agent.options) => {
+    agent.options = options;
+    return agent;
+  },
+}));
+import type { ReactNode } from "react";
+import { I18nProvider } from "@/core/i18n/i18n-provider";
+import { pageProps } from "@/core/i18n/testing";
+import type { Locale } from "@/core/i18n";
 import { DemoScreen } from "./demo";
+import DemoPage from "./page";
 
 const LEDGER = {
   customers: [
@@ -49,6 +61,15 @@ afterEach(() => {
 });
 
 const chat = () => screen.getByRole("region", { name: "Negocio" });
+
+/** The demo page as Next.js renders it under /[lang]/demo, with the layout's locale around it. */
+async function renderPage(lang: Locale, country?: string) {
+  const page = await DemoPage({ ...pageProps(lang), searchParams: Promise.resolve(country ? { country } : {}) });
+  const wrap = (children: ReactNode) => <I18nProvider locale={lang}>{children}</I18nProvider>;
+  return render(wrap(page));
+}
+
+const fetchedUrls = () => vi.mocked(fetch).mock.calls.map(([url]) => String(url));
 
 describe("demo chat", () => {
   it("greets the owner with what the shop is owed today, from the ledger", async () => {
@@ -127,5 +148,88 @@ describe("demo chat", () => {
 
     expect(within(chat()).getByText("C-0001").tagName).toBe("STRONG");
     expect(within(chat()).queryByText(/\*\*/)).toBeNull();
+  });
+});
+
+describe("demo countries", () => {
+  it("opens Bia's Brazilian shop for a Portuguese visitor, reading only the wBRL ledger", async () => {
+    await renderPage("pt-BR");
+
+    expect(screen.getByRole("heading", { level: 1, name: "Padaria da Bia" })).toBeTruthy();
+    expect(screen.getByText("Seu assistente de cobranças em reais")).toBeTruthy();
+    expect(await screen.findByText("Oi, Bia! Hoje te devem R$ 57.000 entre 1 cliente.")).toBeTruthy();
+    expect(fetchedUrls()).toContain("/api/ledger?currency=wBRL");
+    expect(fetchedUrls().some((url) => url.includes("currency=wARS"))).toBe(false);
+  });
+
+  it("opens Ana's Argentine shop for everyone else", async () => {
+    await renderPage("en");
+
+    expect(screen.getByRole("heading", { level: 1, name: "Panadería de Ana" })).toBeTruthy();
+    expect(await screen.findByText("Hi, Ana! Today you are owed $57.000 by 1 customer.")).toBeTruthy();
+    expect(fetchedUrls()).toContain("/api/ledger?currency=wARS");
+  });
+
+  it("lets ?country=AR open the Argentine shop in Portuguese", async () => {
+    await renderPage("pt-BR", "AR");
+
+    expect(screen.getByRole("heading", { level: 1, name: "Panadería de Ana" })).toBeTruthy();
+    expect(fetchedUrls()).toContain("/api/ledger?currency=wARS");
+  });
+
+  it("switches country with links that keep the language, marking the current one", async () => {
+    await renderPage("es-AR");
+
+    const countries = screen.getByRole("group", { name: "País" });
+    const argentina = within(countries).getByRole("link", { name: /Argentina/ });
+    const brasil = within(countries).getByRole("link", { name: /Brasil/ });
+    expect(argentina.getAttribute("href")).toBe("/es-AR/demo?country=AR");
+    expect(brasil.getAttribute("href")).toBe("/es-AR/demo?country=BR");
+    expect(argentina.getAttribute("aria-current")).toBe("true");
+    expect(brasil.getAttribute("aria-current")).toBeNull();
+  });
+
+  it("asks the activity of the shop's country only", async () => {
+    await renderPage("pt-BR");
+
+    fireEvent.click(within(screen.getByRole("region", { name: "Loja" })).getByRole("button", { name: /Atividade/ }));
+
+    expect(fetchedUrls()).toContain("/api/activity?currency=wBRL");
+  });
+
+  it("tells the agent, on every turn, which shop is talking and the page's language", async () => {
+    await renderPage("pt-BR");
+
+    expect(agent.options?.prepareSend?.({ message: "Quem me deve?" })).toEqual({
+      message: "Quem me deve?",
+      clientContext: {
+        shop: { country: "BR", currency: "wBRL", name: "Padaria da Bia", owner: "Bia" },
+        language: "pt-BR",
+      },
+    });
+  });
+
+  it("charges from the ledger in the page's language", async () => {
+    await renderPage("en");
+
+    fireEvent.click(await screen.findByRole("button", { name: "Charge Juan Pérez" }));
+
+    expect(agent.send).toHaveBeenCalledWith("Charge Juan Pérez what they owe", undefined);
+  });
+
+  it("speaks English around the chat and links home within the locale", async () => {
+    await renderPage("en");
+
+    const shop = screen.getByRole("region", { name: "Shop" });
+    expect(within(shop).getByRole("textbox", { name: "Message" })).toBeTruthy();
+    expect(within(shop).getByRole("button", { name: "Send" })).toBeTruthy();
+    expect(within(shop).getByRole("link", { name: /Home/ }).getAttribute("href")).toBe("/en");
+    expect(screen.getByRole("region", { name: "Customer" })).toBeTruthy();
+  });
+
+  it("links home within the default locale", () => {
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByRole("link", { name: /Inicio/ }).getAttribute("href")).toBe("/es-AR");
   });
 });

@@ -120,6 +120,60 @@ describe("paymentMessage", () => {
   });
 });
 
+describe("a Brazilian charge", () => {
+  const BRL: ChargeView = { ...CHARGE, customer: "João Silva", description: "pão de queijo", amount: "850", currency: "wBRL" };
+  const BRL_PAID: ChargeView = { ...BRL, status: "paid", paidAt: "2026-10-17T15:05:00.000Z", paidBy: "simulated-4" };
+
+  it("asks for reais in the page's language", () => {
+    expect(paymentMessage(BRL, undefined, "pt-BR")).toBe(
+      "Oi, João! Segue o link para pagar pão de queijo (C-0007) no valor de R$ 850: http://localhost:3000/pay/C-0007",
+    );
+    expect(paymentMessage(BRL, "Jo", "en")).toBe(
+      "Hi Jo! Here is the link to pay for pão de queijo (C-0007), R$ 850: http://localhost:3000/pay/C-0007",
+    );
+  });
+
+  it("shares the message in the page's language on WhatsApp", () => {
+    const url = new URL(whatsAppShareUrl(BRL, { firstName: "João", phone: "5511912345678" }, "pt-BR"));
+
+    expect(url.searchParams.get("text")).toBe(paymentMessage(BRL, "João", "pt-BR"));
+  });
+
+  it("gets a receipt in reais, paid through wBRL, at São Paulo time and in the page's language", () => {
+    expect(receiptFor(BRL_PAID, "pt-BR")).toEqual({
+      reference: "C-0007",
+      operation: "simulated-4",
+      paidAt: "17/10/2026 12:05",
+      customer: "João Silva",
+      description: "pão de queijo",
+      amount: "R$ 850",
+      method: "Ripio · wBRL na Celo",
+      simulated: true,
+    });
+    expect(receiptFor(BRL_PAID, "en")?.paidAt).toBe("10/17/2026 12:05");
+    expect(receiptFor(BRL_PAID, "en")?.method).toBe("Ripio · wBRL on Celo");
+  });
+});
+
+describe("whatsAppNumber in Brazil", () => {
+  it.each([
+    ["11 91234-5678", "5511912345678"],
+    ["(21) 98765-4321", "5521987654321"],
+    ["+55 11 91234-5678", "5511912345678"],
+    ["011 91234-5678", "5511912345678"],
+  ])("turns the Brazilian mobile %s into WhatsApp's international format", (input, expected) => {
+    expect(whatsAppNumber(input, "BR")).toBe(expected);
+  });
+
+  it.each([
+    ["a landline, without the mobile 9", "11 2345-6789"],
+    ["too short", "91234-5678"],
+    ["empty", ""],
+  ])("rejects a number that is %s", (_case, input) => {
+    expect(whatsAppNumber(input, "BR")).toBeUndefined();
+  });
+});
+
 describe("whatsAppNumber", () => {
   it.each([
     ["11 2345-6789", "5491123456789"],

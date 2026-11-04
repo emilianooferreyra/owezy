@@ -1,10 +1,17 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import type { Locale } from "@/core/i18n";
+import { I18nProvider } from "@/core/i18n/i18n-provider";
 import { pageProps } from "@/core/i18n/testing";
 import HomePage from "./page";
 
 afterEach(cleanup);
+
+/** The landing with the layout's locale around it, as the sample ledger (a Client Component) reads it. */
+async function renderInLocale(lang: Locale) {
+  return render(<I18nProvider locale={lang}>{await HomePage(pageProps(lang))}</I18nProvider>);
+}
 
 describe("landing page", () => {
   it("names the product and says what it does for the shop", async () => {
@@ -65,5 +72,19 @@ describe("landing page", () => {
 
     expect(screen.getByText("Hoy en Argentina y Brasil")).toBeTruthy();
     expect(screen.getByText(/Próximamente/)).toBeTruthy();
+  });
+
+  it("shows Brazilian customers in reais on pt-BR, Argentine customers in pesos otherwise", async () => {
+    await renderInLocale("pt-BR");
+    const caderneta = screen.getByRole("region", { name: "Caderneta" });
+    expect(within(caderneta).getByText("João Silva")).toBeTruthy();
+    expect(within(caderneta).getByRole("button", { name: "Cobrar João Silva" })).toBeTruthy();
+    expect(within(caderneta).getByText("R$ 570")).toBeTruthy();
+    cleanup();
+
+    await renderInLocale("en");
+    const ledger = screen.getByRole("region", { name: "Ledger" });
+    expect(within(ledger).getByText("Juan Pérez")).toBeTruthy();
+    expect(within(ledger).getByText("$94.000")).toBeTruthy();
   });
 });

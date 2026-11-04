@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatWarsBalance, shortAddress } from "./wallet-display";
+import { formatTokenBalance, formatWarsBalance, shortAddress } from "./wallet-display";
 
 const UNIT = 10n ** 18n;
 
@@ -20,5 +20,15 @@ describe("formatWarsBalance", () => {
 
   it("shows an empty wallet as zero", () => {
     expect(formatWarsBalance(0n)).toBe("$0");
+  });
+});
+
+describe("formatTokenBalance", () => {
+  it("shows a wBRL balance as reais, cutting past two decimals", () => {
+    expect(formatTokenBalance(1_234n * UNIT + (UNIT * 5679n) / 10000n, "wBRL")).toBe("R$ 1.234,56");
+  });
+
+  it("shows a wARS balance as pesos", () => {
+    expect(formatTokenBalance(85_000n * UNIT, "wARS")).toBe("$85.000");
   });
 });
