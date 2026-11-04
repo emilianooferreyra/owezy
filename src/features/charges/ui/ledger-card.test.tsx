@@ -38,7 +38,8 @@ describe("LedgerCard", () => {
     const card = screen.getByRole("region", { name: "Libreta" });
     expect(within(card).getByText("$66.000")).toBeTruthy();
     const juan = within(card).getByText("Juan Pérez").closest("li") as HTMLElement;
-    expect(within(juan).getByText("medialunas · torta")).toBeTruthy();
+    expect(within(juan).getByText("Medialunas · Torta")).toBeTruthy();
+    expect(within(juan).getByText("JP")).toBeTruthy();
     expect(within(juan).getByText("$57.000")).toBeTruthy();
   });
 
@@ -52,6 +53,16 @@ describe("LedgerCard", () => {
     expect(onCharge).toHaveBeenCalledWith("Juan Pérez");
     expect(screen.getByText("Link enviado")).toBeTruthy();
     expect(screen.getByText("Al día")).toBeTruthy();
+  });
+
+  it("shows Cobrar as a plain label, not a button, when nothing handles charging", () => {
+    render(<LedgerCard ledger={LEDGER} />);
+
+    expect(screen.getByText("Cobrar")).toBeTruthy();
+    expect(screen.queryAllByRole("button")).toEqual([]);
+    expect(screen.getByText("Cobrar").closest("[class*='cursor-pointer']")).toBeNull();
+    // A picture of a button: the pointer passes through it, so it has no hover either.
+    expect(screen.getByText("Cobrar").closest("span")?.className.split(/\s+/)).toContain("pointer-events-none");
   });
 
   it("holds the buttons while the agent is answering", () => {
