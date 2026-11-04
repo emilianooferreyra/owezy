@@ -39,9 +39,9 @@ export const ptBR = {
       "Te devem? A Owezy cobra por você. Anote o fiado como na caderneta de sempre; com um toque seu cliente recebe o link, paga pelo banco em reais ou em pesos, e a caderneta se marca sozinha.",
     sceneOwner: "O João levou 2 dúzias de pão de queijo, 120 reais",
     sceneNoted: "Anotado na caderneta",
-    scenePaid: "💸 {customer} te pagou {amount}",
-    sceneSent: "📨 Link enviado para {customer}",
-    sceneWritten: "📝 Anotado: {customer} · {amount}",
+    scenePaid: "{customer} te pagou {amount}",
+    sceneSent: "Link enviado para {customer}",
+    sceneWritten: "Anotado: {customer} · {amount}",
     howItWorks: "Como funciona",
     steps: [
       { title: "Você anota", example: "“O João levou pão de queijo, 120 reais.”" },

@@ -54,7 +54,7 @@ describe("SampleLedger", () => {
 
     later(2_500);
     expect(within(row("Juan Pérez")).getByText("Al día")).toBeTruthy();
-    expect(screen.getByText("💸 Juan Pérez te pagó $57.000")).toBeTruthy();
+    expect(screen.getByText("Juan Pérez te pagó $57.000")).toBeTruthy();
     expect(total()).toContain("$37.000");
 
     later(1_700);
@@ -62,7 +62,7 @@ describe("SampleLedger", () => {
 
     later(2_500);
     expect(within(row("Carlos Ruiz")).getByText("Al día")).toBeTruthy();
-    expect(screen.getByText("💸 Carlos Ruiz te pagó $28.000")).toBeTruthy();
+    expect(screen.getByText("Carlos Ruiz te pagó $28.000")).toBeTruthy();
     expect(total()).toContain("$9.000");
   });
 
@@ -71,19 +71,19 @@ describe("SampleLedger", () => {
     expect(within(row("Martina Gómez")).getByText("Cobrar")).toBeTruthy();
     expect(within(row("Martina Gómez")).getByText("$9.000")).toBeTruthy();
 
-    later(11_500);
+    later(13_200);
 
     expect(within(row("Martina Gómez")).getByText("Link enviado")).toBeTruthy();
     expect(within(row("Martina Gómez")).getByText("$9.000")).toBeTruthy();
     expect(screen.queryByText(/Martina Gómez te pagó/)).toBeNull();
-    expect(screen.getByText("📨 Link enviado a Martina Gómez")).toBeTruthy();
+    expect(screen.getByText("Link enviado a Martina Gómez")).toBeTruthy();
   });
 
   it("ends by writing Lucía down: a new row to charge, and the total goes up", () => {
     renderSample();
     expect(screen.queryByText("Lucía Fernández")).toBeNull();
 
-    later(13_000);
+    later(14_500);
     expect(row("Lucía Fernández").className).toContain("bg-highlight/50");
 
     later(3_000);
@@ -92,7 +92,7 @@ describe("SampleLedger", () => {
     expect(within(row("Lucía Fernández")).getByText("Cobrar")).toBeTruthy();
     expect(within(row("Lucía Fernández")).getByText("$7.500")).toBeTruthy();
     expect(total()).toContain("$16.500");
-    expect(screen.getByText("📝 Anotado: Lucía Fernández · $7.500")).toBeTruthy();
+    expect(screen.getByText("Anotado: Lucía Fernández · $7.500")).toBeTruthy();
   });
 
   it("plays only once: nothing changes after the story ends", () => {
@@ -103,7 +103,7 @@ describe("SampleLedger", () => {
     later(20_000);
 
     expect(total()).toBe(after);
-    expect(screen.getByText("📝 Anotado: Lucía Fernández · $7.500")).toBeTruthy();
+    expect(screen.getByText("Anotado: Lucía Fernández · $7.500")).toBeTruthy();
   });
 
   it("stays still for people who asked the system to reduce motion, with a payment note shown", () => {
@@ -115,5 +115,26 @@ describe("SampleLedger", () => {
     expect(within(row("Juan Pérez")).getByText("Cobrar")).toBeTruthy();
     expect(screen.getByText(/te pagó/)).toBeTruthy();
     expect(total()).toContain("$94.000");
+  });
+
+  it("lets one note leave before the next arrives, and its icon flies in like the Cobrás step", () => {
+    renderSample();
+
+    later(12_600);
+    expect(screen.queryByText("Link enviado a Martina Gómez")).toBeNull();
+
+    later(800);
+    const note = screen.getByText("Link enviado a Martina Gómez");
+    const icon = note.querySelector("[data-note-icon]");
+    expect(icon?.textContent).toBe("📨");
+    expect(icon?.getAttribute("class")).toContain("animate-fly");
+  });
+
+  it("waits a little longer between Carlos and Martina, so the story does not rush", () => {
+    renderSample();
+
+    later(11_900);
+
+    expect(within(row("Martina Gómez")).queryByText("Link enviado")).toBeNull();
   });
 });

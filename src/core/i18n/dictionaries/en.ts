@@ -39,9 +39,9 @@ export const en = {
       "They owe, you get paid. Write down what customers take on credit, like in the old store ledger; one tap sends them a payment link, they pay from their bank in pesos or reais, and the ledger marks itself paid.",
     sceneOwner: "Juan took 2 dozen medialunas, 12k pesos",
     sceneNoted: "Written in the ledger",
-    scenePaid: "💸 {customer} paid you {amount}",
-    sceneSent: "📨 Link sent to {customer}",
-    sceneWritten: "📝 Written down: {customer} · {amount}",
+    scenePaid: "{customer} paid you {amount}",
+    sceneSent: "Link sent to {customer}",
+    sceneWritten: "Written down: {customer} · {amount}",
     howItWorks: "How it works",
     steps: [
       { title: "Write it down", example: "“Juan took medialunas, 12k pesos.”" },

@@ -99,14 +99,34 @@ const LOOK_FIRST = 2_000;
 const STORY: readonly { linkAt: number; paidAt?: number }[] = [
   { linkAt: LOOK_FIRST + 1_800, paidAt: LOOK_FIRST + 3_600 },
   { linkAt: LOOK_FIRST + 5_400, paidAt: LOOK_FIRST + 7_200 },
-  { linkAt: LOOK_FIRST + 9_000 },
+  // A longer breath after Carlos pays, so Martina's link does not rush in on top of it.
+  { linkAt: LOOK_FIRST + 10_500 },
 ];
-const WRITTEN_DOWN_AT = LOOK_FIRST + 10_800;
+const WRITTEN_DOWN_AT = LOOK_FIRST + 12_300;
 const FRESH_FOR = 1_800;
 const COUNT_MS = 900;
 const COUNT_STEPS = 18;
 
 type Beat = "owes" | "link-sent" | "paid";
+
+/** The yellow note: who paid, who got a link, who was written down. */
+type Note = { kind: "paid" | "sent" | "written"; index: number };
+const NOTE_PAUSE = 550;
+const NOTE_ICONS = { paid: "💸", sent: "📨", written: "📝" } as const;
+
+/**
+ * The note's icon flies out and back in as the note arrives, the same move as the "Cobrás" step on
+ * hover. The box clips it, so it leaves through one side and comes back through the other.
+ */
+function NoteIcon({ kind }: { kind: Note["kind"] }) {
+  return (
+    <span className="inline-grid size-5 shrink-0 place-items-center overflow-hidden">
+      <span data-note-icon="" className="inline-block motion-safe:animate-fly [animation-delay:300ms]">
+        {NOTE_ICONS[kind]}
+      </span>
+    </span>
+  );
+}
 
 /**
  * The sample at a moment of the story: the first customers at their beat, the last one (Lucía)
@@ -148,7 +168,7 @@ export function SampleLedger() {
   const [beats, setBeats] = useState<readonly Beat[]>([]);
   const [total, setTotal] = useState(start);
   // The yellow note tells the latest step: who paid, who got a link, who was written down.
-  const [note, setNote] = useState<{ kind: "paid" | "sent" | "written"; index: number } | undefined>(undefined);
+  const [note, setNote] = useState<Note | undefined>(undefined);
   const [writtenDown, setWrittenDown] = useState(false);
   const [fresh, setFresh] = useState(false);
 
@@ -163,6 +183,11 @@ export function SampleLedger() {
         );
       }
     };
+    /** The current note leaves first; the next one arrives a moment later, not on top of it. */
+    const show = (next: Note) => {
+      setNote(undefined);
+      timers.push(setTimeout(() => setNote(next), NOTE_PAUSE));
+    };
     let owed = start;
     STORY.forEach(({ linkAt, paidAt }, index) => {
       const at = (beat: Beat) => (current: readonly Beat[]) => Object.assign([...current], { [index]: beat });
@@ -170,7 +195,7 @@ export function SampleLedger() {
         setTimeout(() => {
           setBeats(at("link-sent"));
           // A link that ends the story gets its own note; the others are told by the payment.
-          if (paidAt === undefined) setNote({ kind: "sent", index });
+          if (paidAt === undefined) show({ kind: "sent", index });
         }, linkAt),
       );
       if (paidAt === undefined) return;
@@ -181,7 +206,7 @@ export function SampleLedger() {
       timers.push(
         setTimeout(() => {
           setBeats(at("paid"));
-          setNote({ kind: "paid", index });
+          show({ kind: "paid", index });
         }, paidAt),
       );
       count(from, to, paidAt);
@@ -192,7 +217,7 @@ export function SampleLedger() {
       setTimeout(() => {
         setWrittenDown(true);
         setFresh(true);
-        setNote({ kind: "written", index: sample.customers.length - 1 });
+        show({ kind: "written", index: sample.customers.length - 1 });
       }, WRITTEN_DOWN_AT),
     );
     timers.push(setTimeout(() => setFresh(false), WRITTEN_DOWN_AT + FRESH_FOR));
@@ -201,7 +226,7 @@ export function SampleLedger() {
   }, [reduced, start, sample]);
 
   const TEMPLATES = { paid: dict.landing.scenePaid, sent: dict.landing.sceneSent, written: dict.landing.sceneWritten };
-  const noteFor = ({ kind, index }: { kind: keyof typeof TEMPLATES; index: number }) => {
+  const noteFor = ({ kind, index }: Note) => {
     const customer = sample.customers[index];
     return customer
       ? format(TEMPLATES[kind], { customer: customer.customer, amount: formatMoney(customer.owed, currency) })
@@ -220,7 +245,7 @@ export function SampleLedger() {
       />
       {reduced ? (
         <p aria-hidden="true" className={NOTE}>
-          {noteFor({ kind: "paid", index: 0 })}
+          <span>{NOTE_ICONS.paid}</span> {noteFor({ kind: "paid", index: 0 })}
         </p>
       ) : (
         <AnimatePresence mode="popLayout">
@@ -234,6 +259,7 @@ export function SampleLedger() {
               exit={{ opacity: 0, y: -6, scale: 0.96 }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             >
+              <NoteIcon kind={note.kind} />
               {noteFor(note)}
             </motion.p>
           )}

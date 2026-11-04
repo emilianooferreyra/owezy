@@ -40,9 +40,9 @@ export const esAR = {
       "Te deben, Owezy les cobra por vos. Anotá lo que te fían como en la libreta de siempre; con un toque tu cliente recibe el link, paga desde su banco en pesos o en reales, y la libreta se marca sola.",
     sceneOwner: "Juan se llevó 2 docenas de medialunas, 12 lucas",
     sceneNoted: "Anotado en la libreta",
-    scenePaid: "💸 {customer} te pagó {amount}",
-    sceneSent: "📨 Link enviado a {customer}",
-    sceneWritten: "📝 Anotado: {customer} · {amount}",
+    scenePaid: "{customer} te pagó {amount}",
+    sceneSent: "Link enviado a {customer}",
+    sceneWritten: "Anotado: {customer} · {amount}",
     howItWorks: "Cómo funciona",
     steps: [
       { title: "Anotás", example: "“Juan se llevó medialunas, 12 lucas.”" },
