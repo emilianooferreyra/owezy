@@ -165,3 +165,49 @@
   --phone-bar: oklch(27% 0.02 220);
   --phone-bar-foreground: oklch(95% 0 0);
 }
+
+/*
+ * Small hover animations: each icon acts out what its step does. Tailwind turns every --animate-*
+ * into an animate-* utility. Nothing plays for people who asked the system to reduce motion.
+ */
+@theme {
+  --animate-write: owezy-write 0.7s ease-in-out;
+  --animate-fly: owezy-fly 0.9s ease-in-out;
+  --animate-ring: owezy-ring 0.8s ease-in-out;
+  --animate-shake: owezy-shake 0.5s ease-in-out;
+
+  /* The pencil scribbles. */
+  @keyframes owezy-write {
+    0%, 100% { transform: rotate(0deg) translate(0, 0); }
+    25% { transform: rotate(-14deg) translate(-1px, 1px); }
+    50% { transform: rotate(10deg) translate(1px, 0); }
+    75% { transform: rotate(-8deg) translate(0, 1px); }
+  }
+
+  /* The link flies off to the customer and a new one comes back. */
+  @keyframes owezy-fly {
+    0% { transform: translate(0, 0); opacity: 1; }
+    45% { transform: translate(16px, -16px); opacity: 0; }
+    55% { transform: translate(-16px, 16px); opacity: 0; }
+    100% { transform: translate(0, 0); opacity: 1; }
+  }
+
+  /* The bell rings, swinging from its top. */
+  @keyframes owezy-ring {
+    0%, 100% { transform: rotate(0deg); }
+    15% { transform: rotate(16deg); }
+    30% { transform: rotate(-14deg); }
+    45% { transform: rotate(10deg); }
+    60% { transform: rotate(-7deg); }
+    75% { transform: rotate(3deg); }
+  }
+
+  /* The ledger shakes: "over here!" */
+  @keyframes owezy-shake {
+    0%, 100% { transform: rotate(0deg); }
+    20% { transform: rotate(-12deg); }
+    40% { transform: rotate(10deg); }
+    60% { transform: rotate(-7deg); }
+    80% { transform: rotate(4deg); }
+  }
+}

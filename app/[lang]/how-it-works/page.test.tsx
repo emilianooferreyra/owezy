@@ -61,4 +61,12 @@ describe("how it works page", () => {
     expect(within(top).getByRole("link", { name: "Owezy" }).getAttribute("href")).toBe("/en");
     expect(within(top).getByRole("navigation", { name: "Language" })).toBeTruthy();
   });
+
+  it("keeps the landing's width, so the top bar does not jump between the two pages", async () => {
+    render(await HowItWorksPage(pageProps("es-AR")));
+
+    const top = screen.getByRole("link", { name: "Owezy" }).closest("header") as HTMLElement;
+    expect(top.className).toContain("max-w-6xl");
+    expect(screen.getByRole("main").className).toContain("max-w-6xl");
+  });
 });

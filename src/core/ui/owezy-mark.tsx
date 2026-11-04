@@ -13,6 +13,7 @@ export function OwezyMark({ size = 32, title }: { size?: number; title?: string 
       height={size}
       viewBox="0 0 64 64"
       xmlns="http://www.w3.org/2000/svg"
+      data-owezy-mark=""
       role={title ? "img" : undefined}
       aria-hidden={title ? undefined : true}
     >
