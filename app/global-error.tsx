@@ -1,6 +1,6 @@
 "use client"; // Error boundaries must be Client Components.
 
-import ErrorPage from "./error";
+import ErrorPage from "./[lang]/error";
 import "./globals.css";
 
 /**
@@ -9,7 +9,7 @@ import "./globals.css";
  */
 export default function GlobalError(props: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <html lang="es">
+    <html lang="es-AR">
       <body>
         <title>Algo salió mal</title>
         <ErrorPage {...props} />

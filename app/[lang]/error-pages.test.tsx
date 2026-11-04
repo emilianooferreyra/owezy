@@ -37,7 +37,7 @@ describe("not found pages", () => {
     render(<NotFound />);
 
     expect(screen.getByRole("heading", { name: "No encontramos esta página" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Volver al inicio" }).getAttribute("href")).toBe("/");
+    expect(screen.getByRole("link", { name: "Volver al inicio" }).getAttribute("href")).toBe("/es-AR");
   });
 
   it("tells a payer the payment link does not exist, and to ask the business for a new one", () => {

@@ -43,6 +43,8 @@
     "app/**/*.ts",
     "app/**/*.tsx",
     "next.config.ts",
+    "proxy.ts",
+    "proxy.test.ts",
     "drizzle.config.ts",
     "vitest.config.ts",
     "next-env.d.ts",
