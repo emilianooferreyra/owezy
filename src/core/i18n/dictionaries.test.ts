@@ -31,6 +31,6 @@ describe("dictionaries", () => {
 
   it("is actually translated: pt-BR and en do not repeat the Spanish copy", () => {
     expect(getDictionary("pt-BR").landing.tagline).not.toBe(getDictionary("es-AR").landing.tagline);
-    expect(getDictionary("en").landing.tagline).toBe("They owe, you get paid.");
+    expect(getDictionary("en").landing.tagline).toBe("The credit ledger that collects itself.");
   });
 });

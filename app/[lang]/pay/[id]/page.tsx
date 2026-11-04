@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getDictionary, hasLocale } from "@/core/i18n";
 import { chargesRuntime } from "@/features/charges";
+import { LanguageSwitcher } from "@/core/i18n/language-switcher";
 import { SimulatedCheckout } from "@/features/charges/ui";
 
 // A payment link carries a customer's charge: it must never show up in search results.
@@ -24,6 +25,7 @@ export default async function PayPage({ params }: PageProps<"/[lang]/pay/[id]">)
 
   return (
     <main className="grid min-h-dvh place-items-center p-4">
+      <LanguageSwitcher className="absolute top-4 right-4" />
       <div className="w-full max-w-sm">
         <SimulatedCheckout charge={charge} />
       </div>

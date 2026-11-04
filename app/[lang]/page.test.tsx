@@ -19,7 +19,7 @@ describe("landing page", () => {
 
     const hero = screen.getByRole("heading", { level: 1 });
     expect(hero.textContent).toContain("Owezy");
-    expect(screen.getByText("Te deben. Owezy les cobra por vos.")).toBeTruthy();
+    expect(screen.getByText("La libreta del fiado que cobra sola.")).toBeTruthy();
   });
 
   it("shows a sample ledger: who owes what, and who can be charged", async () => {
@@ -58,12 +58,12 @@ describe("landing page", () => {
 
   it("speaks Brazilian Portuguese and English under their locales, linking within them", async () => {
     render(await HomePage(pageProps("pt-BR")));
-    expect(screen.getByText("Te devem. A Owezy cobra por você.")).toBeTruthy();
+    expect(screen.getByText("A caderneta do fiado que cobra sozinha.")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Testar a demo/ }).getAttribute("href")).toBe("/pt-BR/demo");
     cleanup();
 
     render(await HomePage(pageProps("en")));
-    expect(screen.getByText("They owe, you get paid.")).toBeTruthy();
+    expect(screen.getByText("The credit ledger that collects itself.")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Try the demo/ }).getAttribute("href")).toBe("/en/demo");
   });
 
@@ -86,5 +86,15 @@ describe("landing page", () => {
     const ledger = screen.getByRole("region", { name: "Ledger" });
     expect(within(ledger).getByText("Juan Pérez")).toBeTruthy();
     expect(within(ledger).getByText("$94.000")).toBeTruthy();
+  });
+
+  it("puts Owezy and the language switcher at the very top of the page", async () => {
+    render(await HomePage(pageProps("pt-BR")));
+
+    const top = screen.getByRole("link", { name: "Owezy" }).closest("header") as HTMLElement;
+    expect(top.parentElement?.firstElementChild).toBe(top);
+    expect(within(top).getByRole("link", { name: "Owezy" }).getAttribute("href")).toBe("/pt-BR");
+    expect(within(top).getByRole("link", { name: "Como funciona" }).getAttribute("href")).toBe("/pt-BR/how-it-works");
+    expect(within(top).getByRole("navigation", { name: "Idioma" })).toBeTruthy();
   });
 });

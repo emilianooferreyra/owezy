@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { type Dictionary, getDictionary, hasLocale, localePath } from "@/core/i18n";
 import { Button } from "@/core/ui/button";
 import { SampleLedger } from "./sample-ledger";
+import { SiteHeader } from "./site-header";
 
 const REPO_URL = "https://github.com/emilianooferreyra/owezy";
 
@@ -43,6 +44,8 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
   const { landing, common } = getDictionary(lang);
 
   return (
+    <>
+    <SiteHeader lang={lang} />
     <main className="mx-auto grid max-w-6xl gap-20 px-4 py-8">
       <section className="grid items-center gap-14 lg:grid-cols-2">
         <div className="grid justify-items-center gap-6 text-center lg:justify-items-start lg:text-left">
@@ -107,5 +110,6 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
         </a>
       </footer>
     </main>
+    </>
   );
 }

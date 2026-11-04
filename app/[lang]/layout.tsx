@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
 import { getDictionary, hasLocale, LOCALES } from "@/core/i18n";
 import { I18nProvider } from "@/core/i18n/i18n-provider";
-import { LanguageSwitcher } from "@/core/i18n/language-switcher";
 import { cn } from "@/core/lib/utils";
 import "../globals.css";
 
@@ -36,7 +35,6 @@ export default async function RootLayout({ children, params }: LayoutProps<"/[la
     <html lang={lang} className={cn(dmSans.variable, geistMono.variable, "font-sans")}>
       <body>
         <I18nProvider locale={lang}>
-          <LanguageSwitcher className="fixed top-3 right-3 z-50" />
           {children as ReactNode}
         </I18nProvider>
       </body>

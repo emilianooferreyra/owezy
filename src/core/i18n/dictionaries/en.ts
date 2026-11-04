@@ -16,6 +16,7 @@ export const en = {
     backToApp: "Back to the app",
     tryDemo: "Try the demo",
     howItWorks: "See how it works",
+    howItWorksShort: "How it works",
     viewCode: "View the code",
   },
   notFound: {
@@ -33,9 +34,9 @@ export const en = {
   },
   landing: {
     badge: "For small businesses in Argentina and Brazil · Celo + Ripio",
-    tagline: "They owe, you get paid.",
+    tagline: "The credit ledger that collects itself.",
     intro:
-      "Write down what customers buy on credit, charge it with one tap, and know when they paid. Your customer pays from their bank in their own currency; you receive local stablecoins on Celo.",
+      "They owe, you get paid. Write down what customers take on credit, like in the old store ledger; one tap sends them a payment link, they pay from their bank in pesos or reais, and the ledger marks itself paid.",
     sceneOwner: "Juan took 2 dozen medialunas, 12k pesos",
     sceneNoted: "Written in the ledger",
     scenePaid: "💸 Juan paid you $57,000",
@@ -51,9 +52,9 @@ export const en = {
   },
   howItWorks: {
     badge: "Agents on Open Rails · Celo + Ripio",
-    title: "An agent that collects for your business, in your currency",
+    title: "Your credit ledger, now it collects itself",
     intro:
-      "You ask for a charge the way you'd ask a person. Your customer pays from their bank, in pesos or reais. You receive wARS or wBRL on Celo, and the agent reconciles every payment so you never cross off a spreadsheet again.",
+      "You write down what each customer takes, as always. Owezy tells you who owes you, sends them the payment link and, when they pay from their bank, crosses them off the ledger for you. You receive wARS or wBRL on Celo.",
     problemTitle: "The problem",
     problems: [
       {
@@ -62,9 +63,9 @@ export const en = {
           "A transfer comes in and you have to work out who sent it and why. With a dozen customers, there goes your afternoon.",
       },
       {
-        title: "Reconciling is manual",
+        title: "A paper ledger doesn't collect",
         description:
-          "Most small businesses keep a spreadsheet next to online banking and cross off payments one by one. One mistake means chasing someone who already paid.",
+          "It's great for writing things down, but collecting means chasing every customer and remembering who already paid. One mistake means chasing someone who already paid.",
       },
       {
         title: "Your customer won't learn crypto",

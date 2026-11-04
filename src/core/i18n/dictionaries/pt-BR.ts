@@ -16,6 +16,7 @@ export const ptBR = {
     backToApp: "Voltar ao app",
     tryDemo: "Testar a demo",
     howItWorks: "Ver como funciona",
+    howItWorksShort: "Como funciona",
     viewCode: "Ver o código",
   },
   notFound: {
@@ -33,9 +34,9 @@ export const ptBR = {
   },
   landing: {
     badge: "Para PMEs da Argentina e do Brasil · Celo + Ripio",
-    tagline: "Te devem. A Owezy cobra por você.",
+    tagline: "A caderneta do fiado que cobra sozinha.",
     intro:
-      "Anote o fiado, cobre com um toque e saiba quando te pagaram. Seu cliente paga pelo banco na moeda dele; você recebe stablecoins locais na Celo.",
+      "Te devem? A Owezy cobra por você. Anote o fiado como na caderneta de sempre; com um toque seu cliente recebe o link, paga pelo banco em reais ou em pesos, e a caderneta se marca sozinha.",
     sceneOwner: "O João levou 2 dúzias de pão de queijo, 120 reais",
     sceneNoted: "Anotado na caderneta",
     scenePaid: "💸 O João te pagou R$ 570",
@@ -51,9 +52,9 @@ export const ptBR = {
   },
   howItWorks: {
     badge: "Agents on Open Rails · Celo + Ripio",
-    title: "Um agente que cobra pela sua loja, na sua moeda",
+    title: "Sua caderneta do fiado, agora cobra sozinha",
     intro:
-      "Você pede a cobrança como pediria a alguém. Seu cliente paga pelo banco, em pesos ou em reais. Você recebe wARS ou wBRL na Celo, e o agente concilia cada pagamento para você nunca mais riscar uma planilha.",
+      "Você anota o que cada cliente leva, como sempre. A Owezy te diz quem te deve, manda o link de pagamento e, quando ele paga pelo banco, risca da caderneta por você. Você recebe wBRL ou wARS na Celo.",
     problemTitle: "O problema",
     problems: [
       {
@@ -62,9 +63,9 @@ export const ptBR = {
           "Cai uma transferência e você precisa descobrir quem mandou e por quê. Com uma dúzia de clientes, lá se vai a tarde.",
       },
       {
-        title: "Conciliar é na mão",
+        title: "A caderneta não cobra sozinha",
         description:
-          "A maioria das PMEs tem uma planilha ao lado do internet banking e risca cobranças uma por uma. Um erro é cobrar quem já pagou.",
+          "Serve para anotar, mas cobrar é correr atrás de cada cliente e lembrar quem já pagou. Um erro é cobrar quem já pagou.",
       },
       {
         title: "Seu cliente não vai aprender cripto",

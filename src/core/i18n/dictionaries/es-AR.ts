@@ -17,6 +17,7 @@ export const esAR = {
     backToApp: "Volver a la app",
     tryDemo: "Probar la demo",
     howItWorks: "Ver cómo funciona",
+    howItWorksShort: "Cómo funciona",
     viewCode: "Ver el código",
   },
   notFound: {
@@ -34,9 +35,9 @@ export const esAR = {
   },
   landing: {
     badge: "Para PyMEs de Argentina y Brasil · Celo + Ripio",
-    tagline: "Te deben. Owezy les cobra por vos.",
+    tagline: "La libreta del fiado que cobra sola.",
     intro:
-      "Anotá lo que te fían, cobralo con un toque y enterate cuando te pagaron. Tu cliente paga desde su banco en su moneda; vos recibís stablecoins locales en Celo.",
+      "Te deben, Owezy les cobra por vos. Anotá lo que te fían como en la libreta de siempre; con un toque tu cliente recibe el link, paga desde su banco en pesos o en reales, y la libreta se marca sola.",
     sceneOwner: "Juan se llevó 2 docenas de medialunas, 12 lucas",
     sceneNoted: "Anotado en la libreta",
     scenePaid: "💸 Juan te pagó $57.000",
@@ -52,9 +53,9 @@ export const esAR = {
   },
   howItWorks: {
     badge: "Agents on Open Rails · Celo + Ripio",
-    title: "Un agente que cobra por tu negocio, en tu moneda",
+    title: "Tu libreta del fiado, ahora cobra sola",
     intro:
-      "Le pedís el cobro como se lo pedirías a alguien. Tu cliente paga desde su banco, en pesos o en reales. Vos recibís wARS o wBRL en Celo, y el agente concilia cada pago para que no vuelvas a tachar una planilla.",
+      "Anotás lo que se lleva cada cliente, como siempre. Owezy te dice quién te debe, le manda el link de pago y, cuando paga desde su banco, lo tacha de la libreta por vos. Vos recibís wARS o wBRL en Celo.",
     problemTitle: "El problema",
     problems: [
       {
@@ -63,9 +64,9 @@ export const esAR = {
           "Entra una transferencia y tenés que averiguar quién la mandó y por qué. Con una docena de clientes, se te va la tarde.",
       },
       {
-        title: "Conciliar es a mano",
+        title: "La libreta no cobra sola",
         description:
-          "La mayoría de las PyMEs tiene una planilla al lado del home banking y tacha cobros uno por uno. Un error es reclamarle a alguien que ya pagó.",
+          "Sirve para anotar, pero cobrar es perseguir a cada cliente y acordarte quién ya pagó. Un error es reclamarle a alguien que ya pagó.",
       },
       {
         title: "Tu cliente no va a aprender cripto",

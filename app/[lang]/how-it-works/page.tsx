@@ -24,6 +24,7 @@ import { Badge } from "@/core/ui/badge";
 import { Button } from "@/core/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/core/ui/card";
 import { WalletSection } from "@/features/wallet/ui";
+import { SiteHeader } from "../site-header";
 
 export async function generateMetadata({ params }: PageProps<"/[lang]/how-it-works">): Promise<Metadata> {
   const { lang } = await params;
@@ -83,6 +84,8 @@ export default async function HowItWorksPage({ params }: PageProps<"/[lang]/how-
   const { howItWorks: copy, common } = getDictionary(lang);
 
   return (
+    <>
+    <SiteHeader lang={lang} className="max-w-4xl" />
     <main className="mx-auto grid max-w-4xl gap-16 px-4 py-8">
       <header className="grid gap-6">
         <Button asChild variant="link" size="sm" className="w-fit px-0">
@@ -214,5 +217,6 @@ export default async function HowItWorksPage({ params }: PageProps<"/[lang]/how-
         <Actions lang={lang} common={common} />
       </Section>
     </main>
+    </>
   );
 }

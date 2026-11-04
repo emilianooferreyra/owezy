@@ -232,4 +232,12 @@ describe("demo countries", () => {
 
     expect(within(chat()).getByRole("link", { name: /Inicio/ }).getAttribute("href")).toBe("/es-AR");
   });
+
+  it("has the language switcher in the shop's header, not floating over the page", async () => {
+    await renderPage("en");
+
+    const shop = screen.getByRole("region", { name: "Shop" });
+    const switcher = within(shop).getByRole("navigation", { name: "Language" });
+    expect(switcher.closest("header")).toBeTruthy();
+  });
 });

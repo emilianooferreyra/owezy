@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
+import { I18nProvider } from "@/core/i18n/i18n-provider";
 import { pageProps } from "@/core/i18n/testing";
 import HowItWorksPage, { generateMetadata } from "./page";
 
@@ -50,5 +51,14 @@ describe("how it works page", () => {
     expect(screen.getAllByRole("link", { name: /Ver el código/ })[0]?.getAttribute("href")).toBe(
       "https://github.com/emilianooferreyra/owezy",
     );
+  });
+
+  it("keeps Owezy and the language switcher at the very top", async () => {
+    render(<I18nProvider locale="en">{await HowItWorksPage(pageProps("en"))}</I18nProvider>);
+
+    const top = screen.getByRole("link", { name: "Owezy" }).closest("header") as HTMLElement;
+    expect(top.parentElement?.firstElementChild).toBe(top);
+    expect(within(top).getByRole("link", { name: "Owezy" }).getAttribute("href")).toBe("/en");
+    expect(within(top).getByRole("navigation", { name: "Language" })).toBeTruthy();
   });
 });

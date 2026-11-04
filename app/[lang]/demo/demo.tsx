@@ -7,6 +7,7 @@ import { motion } from "motion/react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { format, localePath } from "@/core/i18n";
 import { useI18n } from "@/core/i18n/i18n-provider";
+import { LanguageSwitcher } from "@/core/i18n/language-switcher";
 import { cn } from "@/core/lib/utils";
 import { Button } from "@/core/ui/button";
 import { InlineMarkdown } from "@/core/ui/inline-markdown";
@@ -259,6 +260,7 @@ function OwnerChat({ shop }: { shop: Shop }) {
           <p className="text-sm text-muted-foreground">{copy.subtitle[shop.country]}</p>
         </div>
         <div className="ml-auto flex items-center gap-1">
+          <LanguageSwitcher className="mr-1" />
           <ActivityToggle shop={shop} />
           <Button asChild variant="ghost" size="sm">
             <Link href={localePath(locale, "/")}>
