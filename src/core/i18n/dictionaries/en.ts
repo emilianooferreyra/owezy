@@ -46,7 +46,7 @@ export const en = {
       { title: "Get notified", example: "When he pays, the agent marks it in the ledger." },
     ],
     countries: "Live in Argentina and Brazil",
-    countriesNext: "wMXN, wCOP, wPEN and wCLP already exist on Celo: adding a country means adding its token.",
+    countriesNext: "Coming soon",
     builtWith: "Built with eve · Celo · Ripio",
   },
   howItWorks: {

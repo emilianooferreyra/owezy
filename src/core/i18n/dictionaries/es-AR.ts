@@ -47,7 +47,7 @@ export const esAR = {
       { title: "Te avisa", example: "Cuando paga, el agente lo marca en la libreta." },
     ],
     countries: "Hoy en Argentina y Brasil",
-    countriesNext: "wMXN, wCOP, wPEN y wCLP ya existen en Celo: sumar un país es sumar su token.",
+    countriesNext: "Próximamente",
     builtWith: "Hecho con eve · Celo · Ripio",
   },
   howItWorks: {

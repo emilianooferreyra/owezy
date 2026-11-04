@@ -60,10 +60,10 @@ describe("landing page", () => {
     expect(screen.getByRole("link", { name: /Try the demo/ }).getAttribute("href")).toBe("/en/demo");
   });
 
-  it("says where it works today and that more countries are one token away", async () => {
+  it("says where it works today and that more countries are coming", async () => {
     render(await HomePage(pageProps("es-AR")));
 
     expect(screen.getByText("Hoy en Argentina y Brasil")).toBeTruthy();
-    expect(screen.getByText(/wMXN, wCOP, wPEN y wCLP ya existen en Celo/)).toBeTruthy();
+    expect(screen.getByText(/Próximamente/)).toBeTruthy();
   });
 });

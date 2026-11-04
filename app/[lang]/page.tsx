@@ -92,10 +92,10 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
             {landing.countries}
           </span>
           <span className="text-muted-foreground">
+            {landing.countriesNext}{" "}
             <span aria-hidden="true" className="opacity-60">
-              🇲🇽 🇨🇴 🇵🇪 🇨🇱{" "}
+              🇲🇽 🇨🇴 🇵🇪 🇨🇱
             </span>
-            {landing.countriesNext}
           </span>
         </p>
       </section>

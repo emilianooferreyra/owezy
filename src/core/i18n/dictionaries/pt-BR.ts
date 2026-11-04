@@ -46,7 +46,7 @@ export const ptBR = {
       { title: "Te avisa", example: "Quando ele paga, o agente marca na caderneta." },
     ],
     countries: "Hoje na Argentina e no Brasil",
-    countriesNext: "wMXN, wCOP, wPEN e wCLP já existem na Celo: adicionar um país é adicionar o token dele.",
+    countriesNext: "Em breve",
     builtWith: "Feito com eve · Celo · Ripio",
   },
   howItWorks: {
