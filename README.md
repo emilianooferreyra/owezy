@@ -2,8 +2,9 @@
 
 **They owe, you get paid.**
 
-An AI collections assistant for Argentine small businesses: charge customers in pesos, get paid in
-**wARS** (Ripio's digital peso) on **Celo**, and let the agent reconcile payments for you.
+An AI collections assistant for small businesses in Argentina and Brazil: charge customers in pesos or
+reais, get paid in **wARS** or **wBRL** (Ripio's local stablecoins) on **Celo**, and let the agent
+reconcile payments for you. The app speaks Spanish (es-AR, the default), Brazilian Portuguese and English.
 
 **Live demo:** [getowezy.vercel.app/demo](https://getowezy.vercel.app/demo). Open
 chat, no account needed. It runs with simulated payments, so try paying a charge from the customer's
@@ -17,13 +18,15 @@ phone on the right.
 1. **The owner asks the agent for a charge.** *"Cobrale $85.000 a Juan Pérez por 2 docenas de
    medialunas"*. The agent creates charge `C-0001` with its payment link.
 2. **The customer pays from their bank.** In production the link opens Ripio's on-ramp: the customer
-   pays in pesos without touching crypto, and the business receives wARS on Celo.
+   pays in pesos (or reais with Pix) without touching crypto, and the business receives wARS (or wBRL) on Celo.
 3. **The agent reconciles.** Each incoming transfer is matched to the pending charge with the exact
    amount. The charge turns *paid* and both sides get a receipt.
 
 The demo at `/demo` shows both sides at once: the owner's chat on the left and the customer's phone on
-the right (tabs on mobile). The landing page at `/` reads a connected wallet's **real** wARS balance on
-Celo mainnet (read-only, nothing is signed).
+the right (tabs on mobile), with a switch between the Argentine shop (wARS) and the Brazilian one
+(wBRL). `/how-it-works` reads a connected wallet's **real** balance on Celo mainnet (read-only,
+nothing is signed). Every page lives under its locale (`/es-AR`, `/pt-BR`, `/en`); a path without one
+redirects to the browser's language.
 
 ## Stack
 
@@ -120,6 +123,10 @@ Built:
 - In `ripio` mode, an on-chain reader of wARS `Transfer` events to the business address: it waits
   for confirmations, scans only new blocks, and real receipts link the transaction on Celoscan.
 - A read-only wallet that shows the real wARS balance.
+- Brazil: a shop charges, writes down and reconciles in wBRL. The reader watches both tokens, each
+  transfer takes the currency of the token that moved, and the two countries' ledgers never mix.
+- i18n: typed dictionaries for es-AR, pt-BR and en, a language switcher, and an agent that answers in
+  the owner's language.
 
 - An activity log of what the agent reconciles on its own (paid, unmatched and ambiguous transfers).
   It reconciles once a day as an eve schedule (the Vercel Hobby limit), and every 15 minutes through
@@ -135,8 +142,8 @@ Next:
 
 - Registering the identity on Celo mainnet and a first real payment end to end.
 
-Later, phase 2: paying suppliers in Brazil (wARS → USD₮ → wBRL), behind explicit limits and a
-dedicated wallet.
+Later: more countries, and paying suppliers across borders, behind explicit limits and a dedicated
+wallet.
 
 Charges never touch the agent wallet: the payer's transfer goes straight to the business address,
 and the agent only creates links and reads the chain. The agent wallet signs only the agent's own
@@ -154,6 +161,7 @@ The agent's identity is registered on **Celo Sepolia (testnet)**. Nothing is on 
 | Registration transaction | [`0xaf5107…cdba8`](https://celo-sepolia.blockscout.com/tx/0xaf510704d7006dfabe26880e72b7020e30c8af51b393ba79e8a53e28813cdba8), its calldata ends with the ERC-8021 tag (`celo_1bc71ff8ce89`, `celo_93c87b569368`) |
 | Registration file | [`public/agent.json`](public/agent.json) |
 | wARS token (mainnet, read by the app) | [`0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d`](https://celoscan.io/token/0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d) |
+| wBRL token (mainnet, read by the app) | [`0xd76f5faf6888e24d9f04bf92a0c8b921fe4390e0`](https://celoscan.io/token/0xd76f5faf6888e24d9f04bf92a0c8b921fe4390e0) |
 
 To register on mainnet: fund the agent wallet with a little CELO, then
 `CELO_NETWORK=mainnet node --env-file=.env scripts/register-agent.ts`. The script checks that
