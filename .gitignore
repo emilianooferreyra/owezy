@@ -29,5 +29,6 @@ next-env.d.ts
 .claude/
 .atl/
 openspec/
+odd/
 .vercel
 .env*
