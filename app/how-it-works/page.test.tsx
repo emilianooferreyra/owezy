@@ -21,8 +21,15 @@ describe("how it works page", () => {
       "Qué es real hoy",
       "Cómo está construido",
       "Garantías",
+      "Dónde recibís tus cobros",
       "Links",
     ]);
+  });
+
+  it("lets the shop connect the wallet where its charges arrive, read-only", () => {
+    render(<HowItWorksPage />);
+
+    expect(screen.getByRole("region", { name: "Dónde recibís tus cobros" })).toBeTruthy();
   });
 
   it("is honest that payments are simulated by default", () => {

@@ -21,6 +21,7 @@ import type { ReactNode } from "react";
 import { Badge } from "@/core/ui/badge";
 import { Button } from "@/core/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/core/ui/card";
+import { WalletSection } from "@/features/wallet/ui";
 
 export const metadata: Metadata = { title: "Cómo funciona" };
 
@@ -294,6 +295,16 @@ export default function HowItWorksPage() {
             </li>
           ))}
         </ul>
+      </Section>
+
+      <Section
+        id="your-wallet"
+        title="Dónde recibís tus cobros"
+        intro="Conectá la billetera donde querés recibir y mirá tu saldo en wARS. Solo lectura: no firmás nada."
+      >
+        <div className="grid justify-items-center">
+          <WalletSection />
+        </div>
       </Section>
 
       <Section id="links" title="Links">
