@@ -101,7 +101,7 @@ export const ptBR = {
       {
         title: "Concilia e te avisa",
         description:
-          "Cada transferência vai para a cobrança pendente com esse valor exato e essa moeda. A cobrança passa a paga e os dois lados recebem o comprovante. E você pode perguntar «quem me deve?» quando quiser.",
+          "Cada transferência vai para a cobrança pendente com esse valor exato e essa moeda. A cobrança passa a paga e os dois lados recebem o comprovante. E você pode perguntar «quem me deve?» quando quiser. Isso ele faz sozinho: confere os pagamentos a cada 15 minutos, sem ninguém pedir, e deixa registro na Atividade.",
       },
     ],
     exampleTitle: "Um exemplo com números",
@@ -130,6 +130,11 @@ export const ptBR = {
         piece: "Cobranças e conciliação",
         state: "works",
         detail: "Números de cobrança, idempotência e atribuição de pagamentos por valor e moeda, com testes.",
+      },
+      {
+        piece: "O agente trabalha sozinho",
+        state: "works",
+        detail: "Confere os pagamentos a cada 15 minutos (e uma vez por dia como reforço), concilia e deixa registro do que fez.",
       },
       { piece: "Argentina (wARS) e Brasil (wBRL)", state: "works", detail: "Cada loja cobra na moeda do seu país." },
       { piece: "Carteira e saldo", state: "works", detail: "Lido da Celo mainnet. Só leitura." },
@@ -160,9 +165,18 @@ export const ptBR = {
       "O dinheiro nunca é um número com decimais flutuantes: os valores são inteiros em unidades base, assim um saldo nunca mostra dinheiro que não existe.",
       "A conciliação nunca adivinha: uma transferência ambígua espera uma pessoa decidir.",
     ],
-    walletTitle: "Onde você recebe suas cobranças",
-    walletIntro: "Conecte a carteira onde quer receber e veja seu saldo. Só leitura: você não assina nada.",
+    judgesTitle: "Para o júri",
+    judgesIntro: "Os cinco critérios do track LatAm da Ripio, e onde conferir cada um.",
+    judges: [
+      { criterion: "Opera na Celo mainnet com wFIAT real", evidence: "Lê as transferências de wARS e wBRL da Ripio na Celo mainnet. A primeira cobrança real está a caminho.", link: "wARS no Celoscan" },
+      { criterion: "Uso real de wFIAT e do stack da Celo", evidence: "Ramp da Ripio, wARS e wBRL, viem para ler a rede, ERC-8004 e a tag ERC-8021 nas transações do agente.", link: "Ver o código" },
+      { criterion: "Um agente autônomo e útil", evidence: "Anota, cobra e concilia pelo chat, e confere os pagamentos sozinho a cada 15 minutos.", link: "Testar a demo" },
+      { criterion: "UX usável por uma pessoa real", evidence: "O dono escreve como fala; o cliente paga pelo banco com um link, sem carteira nem cripto.", link: "Testar a demo" },
+      { criterion: "Impacto claro para a LatAm", evidence: "O fiado da padaria, em pesos e em reais: Argentina e Brasil hoje." },
+      { criterion: "Identidade do agente (ERC-8004)", evidence: "Agente #627, registrado com a tag ERC-8021 na transação. Hoje na Celo Sepolia; mainnet, pendente.", link: "Ver o registro" },
+    ],
     linksTitle: "Links",
+    proof: { agentCard: "Ficha do agente", registration: "Registro ERC-8004", agentWallet: "Carteira do agente" },
   },
   demo: {
     sides: "Lados da demo",
@@ -275,6 +289,7 @@ export const ptBR = {
   wallet: {
     group: "Carteiras",
     connect: "Conectar carteira",
+    where: "Onde você recebe suas cobranças",
     notConfigured: "A conexão de carteiras não está configurada neste ambiente.",
     arrivesAt: "Suas cobranças vão chegar em",
     balanceIn: "Saldo em {token}",

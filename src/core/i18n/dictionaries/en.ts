@@ -101,7 +101,7 @@ export const en = {
       {
         title: "It reconciles and tells you",
         description:
-          "Each transfer goes to the pending charge with that exact amount and currency. The charge becomes paid and both sides get a receipt. And you can ask “who owes me?” anytime.",
+          "Each transfer goes to the pending charge with that exact amount and currency. The charge becomes paid and both sides get a receipt. And you can ask “who owes me?” anytime. It does this on its own: it checks payments every 15 minutes, without being asked, and logs it in the Activity.",
       },
     ],
     exampleTitle: "An example with numbers",
@@ -130,6 +130,11 @@ export const en = {
         piece: "Charges and reconciliation",
         state: "works",
         detail: "Charge numbers, idempotency and payment matching by amount and currency, with tests.",
+      },
+      {
+        piece: "The agent works on its own",
+        state: "works",
+        detail: "It checks payments every 15 minutes (and once a day as a backup), reconciles, and logs what it did.",
       },
       { piece: "Argentina (wARS) and Brazil (wBRL)", state: "works", detail: "Each business charges in its country's currency." },
       { piece: "Wallet and balance", state: "works", detail: "Read from Celo mainnet. Read-only." },
@@ -160,9 +165,18 @@ export const en = {
       "Money is never a floating-point number: amounts are integers in base units, so a balance never shows money that isn't there.",
       "Reconciliation never guesses: an ambiguous transfer waits for a person to decide.",
     ],
-    walletTitle: "Where your payments arrive",
-    walletIntro: "Connect the wallet where you want to get paid and see your balance. Read-only: you sign nothing.",
+    judgesTitle: "For the judges",
+    judgesIntro: "The five criteria of Ripio's LatAm track, and where to check each one.",
+    judges: [
+      { criterion: "Runs on Celo mainnet with real wFIAT", evidence: "It reads Ripio's wARS and wBRL transfers on Celo mainnet. The first real payment is on its way.", link: "wARS on Celoscan" },
+      { criterion: "Real use of wFIAT and the Celo stack", evidence: "Ripio's ramp, wARS and wBRL, viem to read the chain, ERC-8004 and the ERC-8021 tag on the agent's transactions.", link: "View the code" },
+      { criterion: "An autonomous, useful agent", evidence: "It writes down, charges and reconciles from the chat, and checks payments on its own every 15 minutes.", link: "Try the demo" },
+      { criterion: "UX a real person can use", evidence: "The owner writes the way they talk; the customer pays from their bank with a link, no wallet or crypto.", link: "Try the demo" },
+      { criterion: "Clear impact for LatAm", evidence: "The corner store's credit tab, in pesos and reais: Argentina and Brazil today." },
+      { criterion: "Agent identity (ERC-8004)", evidence: "Agent #627, registered with the ERC-8021 tag in the transaction. On Celo Sepolia today; mainnet pending.", link: "See the registration" },
+    ],
     linksTitle: "Links",
+    proof: { agentCard: "Agent card", registration: "ERC-8004 registration", agentWallet: "Agent wallet" },
   },
   demo: {
     sides: "Sides of the demo",
@@ -275,6 +289,7 @@ export const en = {
   wallet: {
     group: "Wallets",
     connect: "Connect wallet",
+    where: "Where your payments arrive",
     notConfigured: "Wallet connection is not configured in this environment.",
     arrivesAt: "Your charges will arrive at",
     balanceIn: "{token} balance",

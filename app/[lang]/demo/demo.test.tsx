@@ -266,4 +266,11 @@ describe("demo countries", () => {
     const switcher = within(shop).getByRole("navigation", { name: "Language" });
     expect(switcher.closest("header")).toBeTruthy();
   });
+
+  it("lets the shop connect the wallet where its payments arrive, right under the country switch", async () => {
+    await renderPage("es-AR");
+
+    const shop = screen.getByRole("region", { name: "Negocio" });
+    expect(within(shop).getByText("Dónde recibís tus cobros")).toBeTruthy();
+  });
 });

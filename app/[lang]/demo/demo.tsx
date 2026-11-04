@@ -12,6 +12,7 @@ import { cn } from "@/core/lib/utils";
 import { Button } from "@/core/ui/button";
 import { InlineMarkdown } from "@/core/ui/inline-markdown";
 import { Input } from "@/core/ui/input";
+import { WalletSection } from "@/features/wallet/ui";
 import {
   AR,
   ActivityPanel,
@@ -270,6 +271,11 @@ function OwnerChat({ shop }: { shop: Shop }) {
           </Button>
         </div>
         <CountrySwitch shop={shop} />
+        {/* Where the shop's payments arrive: connect the wallet, read-only, to see its balance. */}
+        <div className="flex w-full flex-wrap items-center justify-between gap-2">
+          <span className="text-sm text-muted-foreground">{dict.wallet.where}</span>
+          <WalletSection />
+        </div>
       </header>
 
       <div aria-live="polite" className="flex flex-col gap-4 py-5">

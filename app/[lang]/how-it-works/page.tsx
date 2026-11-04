@@ -23,7 +23,6 @@ import { type Dictionary, getDictionary, hasLocale, type Locale, localePath } fr
 import { Badge } from "@/core/ui/badge";
 import { Button } from "@/core/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/core/ui/card";
-import { WalletSection } from "@/features/wallet/ui";
 import { SiteFooter } from "../site-footer";
 import { SiteHeader } from "../site-header";
 
@@ -33,6 +32,17 @@ export async function generateMetadata({ params }: PageProps<"/[lang]/how-it-wor
 }
 
 const REPO_URL = "https://github.com/emilianooferreyra/owezy";
+
+// Where a judge checks each criterion, in the order of the dictionary's `judges` (none for impact).
+const WARS_ON_CELOSCAN = "https://celoscan.io/token/0x0dc4f92879b7670e5f4e4e6e3c801d229129d90d";
+const ERC8004_REGISTRATION =
+  "https://celo-sepolia.blockscout.com/tx/0xaf510704d7006dfabe26880e72b7020e30c8af51b393ba79e8a53e28813cdba8";
+const AGENT_WALLET = "https://celo-sepolia.blockscout.com/address/0xEA93f4D017BFF57a4E79CFC19b98BDb6CeA4f99c";
+
+function judgeLink(lang: Locale, index: number): string | undefined {
+  const demo = localePath(lang, "/demo");
+  return [WARS_ON_CELOSCAN, REPO_URL, demo, demo, undefined, ERC8004_REGISTRATION][index];
+}
 
 const PROBLEM_ICONS = [FileSearch, Calculator, Smartphone] as const;
 const STEP_ICONS = [MessageSquareText, Receipt, Landmark, Radar, Bot] as const;
@@ -208,14 +218,58 @@ export default async function HowItWorksPage({ params }: PageProps<"/[lang]/how-
         </ul>
       </Section>
 
-      <Section id="your-wallet" title={copy.walletTitle} intro={copy.walletIntro}>
-        <div className="grid justify-items-center">
-          <WalletSection />
-        </div>
+      <Section id="for-judges" title={copy.judgesTitle} intro={copy.judgesIntro}>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {copy.judges.map((item, index) => {
+            const href = judgeLink(lang, index);
+            return (
+              <li key={item.criterion}>
+                <Card size="sm" className="h-full">
+                  <CardHeader>
+                    <CardTitle>
+                      <h3>{item.criterion}</h3>
+                    </CardTitle>
+                    <CardDescription>{item.evidence}</CardDescription>
+                  </CardHeader>
+                  {href && "link" in item && (
+                    <CardContent className="mt-auto">
+                      <a
+                        href={href}
+                        {...(href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+                        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                      >
+                        {item.link} <ArrowRight className="size-4" aria-hidden="true" />
+                      </a>
+                    </CardContent>
+                  )}
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
       </Section>
 
       <Section id="links" title={copy.linksTitle}>
         <Actions lang={lang} common={common} />
+        {/* The on-chain proof in one place, as judges look for it. */}
+        <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+          {[
+            { href: "/agent.json", label: copy.proof.agentCard },
+            { href: ERC8004_REGISTRATION, label: copy.proof.registration },
+            { href: AGENT_WALLET, label: copy.proof.agentWallet },
+          ].map(({ href, label }) => (
+            <li key={href}>
+              <a
+                href={href}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
+              >
+                {label} <ExternalLink className="size-3.5" aria-hidden="true" />
+              </a>
+            </li>
+          ))}
+        </ul>
       </Section>
     </main>
     <SiteFooter />
