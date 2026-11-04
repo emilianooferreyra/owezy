@@ -16,6 +16,7 @@ function recordedTransfer(): TransferLog {
     logIndex: Number(realLog.logIndex),
     blockNumber: BigInt(realLog.blockNumber),
     blockTimestamp: BigInt(realLog.blockTimestamp),
+    token: realLog.address as Hex,
     to: args.to,
     value: args.value,
   };
@@ -28,6 +29,18 @@ describe("toIncomingTransfer", () => {
       amount: { amount: 1_029_038_246_175_668_291_471n, currency: "wARS" },
       receivedAt: "2026-10-18T01:10:53.000Z",
     });
+  });
+
+  it("labels a transfer with the currency of the token that moved, so a wBRL payment is never read as wARS", () => {
+    const transfer = toIncomingTransfer({ ...recordedTransfer(), token: "0xd76f5faf6888e24d9f04bf92a0c8b921fe4390e0" });
+
+    expect(transfer.amount).toEqual({ amount: 1_029_038_246_175_668_291_471n, currency: "wBRL" });
+  });
+
+  it("refuses a transfer of a token the app does not know", () => {
+    expect(() => toIncomingTransfer({ ...recordedTransfer(), token: "0x000000000000000000000000000000000000dEaD" })).toThrow(
+      /not a known token/,
+    );
   });
 
   it("tells apart two transfers in the same transaction by their log index", () => {

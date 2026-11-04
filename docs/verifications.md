@@ -10,6 +10,8 @@ Each item: `confirmed` / `refuted` / `blocked` / `pending`, with evidence and da
 | V3 | eve tool can import a workspace package; Node 24 required? | **confirmed** (build level) | 2026-10-16 |
 | V4 | wARS deployed on a Celo testnet? | **refuted** (no evidence of deployment) | 2026-10-16 |
 | V5 | Textile quote/execution wARS → USD₮ → wBRL for a non-filler | pending (phase 2 only) | — |
+| V6 | Ripio ramp for Brazil takes `country=BR&token=WBRL` and delivers wBRL to a third-party `address` | pending (owner) | — |
+| V7 | wBRL on Celo mainnet is `0xd76f5faf6888e24d9f04bf92a0c8b921fe4390e0` | **confirmed**: forno `eth_call` gives `symbol()` = "wBRL" and `decimals()` = 18; the address matches docs.celo.org "Stablecoin Contracts" | 2026-11-04 |
 
 ---
 

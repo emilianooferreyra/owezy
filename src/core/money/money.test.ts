@@ -3,6 +3,7 @@ import {
   CurrencyMismatchError,
   equals,
   formatArs,
+  formatMoney,
   fromDecimalString,
   InvalidAmountError,
   money,
@@ -54,6 +55,17 @@ describe("Money", () => {
 
     it("drops the fraction entirely when the cut leaves only zeros", () => {
       expect(toDecimalString(money(5n * UNIT + 1n, "wARS"), { maxFractionDigits: 2 })).toBe("5");
+    });
+  });
+
+  describe("formatMoney", () => {
+    it("writes pesos the Argentine way", () => {
+      expect(formatMoney("85000.5", "wARS")).toBe("$85.000,50");
+    });
+
+    it("writes reais the Brazilian way, with R$ and the same separators", () => {
+      expect(formatMoney("850", "wBRL")).toBe("R$ 850");
+      expect(formatMoney("1250000.75", "wBRL")).toBe("R$ 1.250.000,75");
     });
   });
 

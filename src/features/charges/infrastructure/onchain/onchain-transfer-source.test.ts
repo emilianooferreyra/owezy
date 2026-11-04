@@ -4,6 +4,7 @@ import {
   OnchainTransferSource,
   type TransferLogReader,
 } from "./onchain-transfer-source";
+import { TOKENS } from "../../../../core/celo/tokens";
 import type { TransferLog } from "./transfer-log";
 
 const BUSINESS = "0x000000000000000000000000000000000000dEaD";
@@ -14,6 +15,7 @@ function transferAt(blockNumber: bigint, logIndex = 0): TransferLog {
     logIndex,
     blockNumber,
     blockTimestamp: 1_790_000_000n + blockNumber,
+    token: TOKENS.wARS,
     to: BUSINESS,
     value: 85_000n * 10n ** 18n,
   };

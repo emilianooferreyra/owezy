@@ -1,5 +1,8 @@
 export type Currency = "wARS" | "wBRL";
 
+/** What a shop charges in when nothing says otherwise: Argentina, where the app started. */
+export const DEFAULT_CURRENCY: Currency = "wARS";
+
 /** An amount in the token's base units (wARS and wBRL use 18 decimals). */
 export type Money = Readonly<{
   amount: bigint;
@@ -39,11 +42,27 @@ export function toDecimalString(value: Money, options: { maxFractionDigits?: num
   return digits ? `${whole}.${digits}` : whole.toString();
 }
 
-/** Formats a decimal string as Argentine pesos, e.g. "85000.5" → "$85.000,50". Never goes through `number`. */
-export function formatArs(amount: string): string {
+// How each country writes its money. Argentina and Brazil both group thousands with dots and use a decimal comma.
+const SYMBOLS: Record<Currency, string> = { wARS: "$", wBRL: "R$ " };
+
+/**
+ * Formats a decimal string the way the currency's country writes it, e.g. "85000.5" in wARS →
+ * "$85.000,50", "850" in wBRL → "R$ 850". Never goes through `number`.
+ */
+export function formatMoney(amount: string, currency: Currency): string {
   const [whole = "", fraction] = amount.split(".");
   const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return fraction === undefined ? `$${grouped}` : `$${grouped},${fraction.padEnd(2, "0")}`;
+  const symbol = SYMBOLS[currency];
+  return fraction === undefined ? `${symbol}${grouped}` : `${symbol}${grouped},${fraction.padEnd(2, "0")}`;
+}
+
+/** Formats a decimal string as Argentine pesos, e.g. "85000.5" → "$85.000,50". */
+export function formatArs(amount: string): string {
+  return formatMoney(amount, "wARS");
+}
+
+export function isCurrency(value: string): value is Currency {
+  return Object.hasOwn(SYMBOLS, value);
 }
 
 export class InvalidAmountError extends Error {

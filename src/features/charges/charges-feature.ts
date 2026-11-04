@@ -1,4 +1,4 @@
-import { fromDecimalString, money, toDecimalString } from "../../core/money/money";
+import { type Currency, DEFAULT_CURRENCY, fromDecimalString, money, toDecimalString } from "../../core/money/money";
 import { createChargeUseCase } from "./application/create-charge";
 import { addToLedgerUseCase, chargeFromLedgerUseCase } from "./application/ledger";
 import type {
@@ -106,7 +106,10 @@ const DEFAULT_LIST_LIMIT = 20;
 
 export type SimulatedPaymentOutcome = "paid" | "already-paid" | "ambiguous";
 
-/** Wires the charges feature. Phase 1 charges in wARS only. */
+/**
+ * Wires the charges feature. A shop charges in its country's currency (wARS by default, or wBRL):
+ * every call names it, and lists, totals and ledgers only ever show that currency.
+ */
 export function createChargesFeature(deps: {
   charges: ChargeRepository;
   buildPaymentLink: PaymentLinkBuilder;
@@ -192,10 +195,12 @@ export function createChargesFeature(deps: {
       requestId: string;
       customer: string;
       description: string;
-      /** Whole pesos as a decimal string, e.g. "85000". */
+      /** Whole units of the currency as a decimal string, e.g. "85000". */
       amount: string;
+      currency?: Currency;
     }): Promise<ChargeView> {
-      const result = await createCharge({ ...input, amount: fromDecimalString(input.amount, "wARS") });
+      const { currency = DEFAULT_CURRENCY, ...request } = input;
+      const result = await createCharge({ ...request, amount: fromDecimalString(input.amount, currency) });
       return { ...toView(result.charge), created: result.created };
     },
 
@@ -220,16 +225,22 @@ export function createChargesFeature(deps: {
      * The business's charges, newest first. It reconciles first, so a payment that already
      * arrived shows as paid instead of pending.
      */
-    async listCharges(filter: { status?: ChargeStatus | undefined; limit?: number }): Promise<ChargeList> {
+    async listCharges(filter: {
+      status?: ChargeStatus | undefined;
+      limit?: number;
+      currency?: Currency;
+    }): Promise<ChargeList> {
       await syncPayments();
+      const currency = filter.currency ?? DEFAULT_CURRENCY;
       const matching = newestFirst(await deps.charges.list()).filter(
-        (charge) => filter.status === undefined || charge.status === filter.status,
+        (charge) =>
+          charge.amount.currency === currency && (filter.status === undefined || charge.status === filter.status),
       );
       const total = matching.reduce((sum, charge) => sum + charge.amount.amount, 0n);
       return {
         charges: matching.slice(0, filter.limit ?? DEFAULT_LIST_LIMIT).map(toView),
         count: matching.length,
-        total: toDecimalString(money(total, "wARS")),
+        total: toDecimalString(money(total, currency)),
       };
     },
 
@@ -237,8 +248,9 @@ export function createChargesFeature(deps: {
      * What the agent did on its own, newest first. Only reads: the scheduled reconciliation
      * writes it, so the owner's panel can poll without reading the chain.
      */
-    async listActivity(filter: { limit?: number }): Promise<ActivityView[]> {
-      const entries = (await deps.activity?.list()) ?? [];
+    async listActivity(filter: { limit?: number; currency?: Currency }): Promise<ActivityView[]> {
+      const currency = filter.currency ?? DEFAULT_CURRENCY;
+      const entries = ((await deps.activity?.list()) ?? []).filter((entry) => entry.amount.currency === currency);
       // The log is append-only, so the newest entries are last.
       return [...entries]
         .reverse()
@@ -250,11 +262,13 @@ export function createChargesFeature(deps: {
      * What each customer owes, from the ledger. It reconciles first, so entries whose charge was
      * paid show as paid.
      */
-    async readLedger(filter: { customer?: string | undefined }): Promise<LedgerView> {
+    async readLedger(filter: { customer?: string | undefined; currency?: Currency }): Promise<LedgerView> {
       const ledger = ledgerOrFail();
       await syncPayments();
-      const entries = await ledger.list();
-      const all = summarizeLedger(entries, await deps.charges.list());
+      const currency = filter.currency ?? DEFAULT_CURRENCY;
+      const entries = (await ledger.list()).filter((entry) => entry.amount.currency === currency);
+      const charges = (await deps.charges.list()).filter((charge) => charge.amount.currency === currency);
+      const all = summarizeLedger(entries, charges);
       const wanted = filter.customer === undefined ? undefined : customersNamed(entries, filter.customer);
       const balances = wanted === undefined ? all : all.filter(({ customer }) => wanted.includes(customer));
       const totalOwed = balances.reduce((sum, { owed }) => sum + owed.amount, 0n);
@@ -265,7 +279,7 @@ export function createChargesFeature(deps: {
           unbilled: toDecimalString(balance.unbilled),
           entries: balance.entries.map((entry) => toEntryView(entry, entry.status)),
         })),
-        totalOwed: toDecimalString(money(totalOwed, "wARS")),
+        totalOwed: toDecimalString(money(totalOwed, currency)),
       };
     },
 
@@ -274,11 +288,13 @@ export function createChargesFeature(deps: {
       requestId: string;
       customer: string;
       description: string;
-      /** Whole pesos as a decimal string, e.g. "30000". */
+      /** Whole units of the currency as a decimal string, e.g. "30000". */
       amount: string;
+      currency?: Currency;
     }): Promise<{ entry: LedgerEntryView; created: boolean }> {
       const add = addToLedgerUseCase({ ledger: ledgerOrFail(), now });
-      const { entry, created } = await add({ ...input, amount: fromDecimalString(input.amount, "wARS") });
+      const { currency = DEFAULT_CURRENCY, ...request } = input;
+      const { entry, created } = await add({ ...request, amount: fromDecimalString(input.amount, currency) });
       return { entry: toEntryView(entry, "unbilled"), created };
     },
 
@@ -286,6 +302,7 @@ export function createChargesFeature(deps: {
     async chargeFromLedger(input: {
       requestId: string;
       customer: string;
+      currency?: Currency;
     }): Promise<ChargeView & { entries: readonly string[] }> {
       const charge = chargeFromLedgerUseCase({
         ledger: ledgerOrFail(),

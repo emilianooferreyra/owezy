@@ -4,9 +4,11 @@ import type { PaymentLinkBuilder } from "../application/ports";
 const RAMP_URL = "https://ramp.ripio.com/";
 const CELO_CHAIN_ID = "42220";
 
-// Ripio ramp parameters per currency. Only wARS (Argentina) is supported in phase 1.
+// Ripio ramp parameters per currency. The BR values follow the AR format; neither is confirmed
+// end to end yet (docs/verifications.md, V1 and V6).
 const RAMP_TOKENS: Partial<Record<Currency, { country: string; token: string }>> = {
   wARS: { country: "AR", token: "WARS" },
+  wBRL: { country: "BR", token: "WBRL" },
 };
 
 export class UnsupportedRampCurrencyError extends Error {

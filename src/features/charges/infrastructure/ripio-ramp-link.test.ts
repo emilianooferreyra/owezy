@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { money } from "../../../core/money/money";
+import { type Currency, money } from "../../../core/money/money";
 import { aCharge } from "../testing/fixtures";
 import { ripioRampLinkBuilder, UnsupportedRampCurrencyError } from "./ripio-ramp-link";
 
@@ -17,9 +17,18 @@ describe("ripioRampLinkBuilder", () => {
     );
   });
 
+  it("builds the Brazilian on-ramp link for a charge in reais", () => {
+    const buildLink = ripioRampLinkBuilder({ recipient: RECIPIENT });
+    const charge = aCharge({ id: "C-0124", amount: money(850n * UNIT, "wBRL") });
+
+    expect(buildLink(charge)).toBe(
+      `https://ramp.ripio.com/?country=BR&chain=42220&token=WBRL&amount=850&address=${RECIPIENT}`,
+    );
+  });
+
   it("refuses to build a link for a currency the ramp is not configured for", () => {
     const buildLink = ripioRampLinkBuilder({ recipient: RECIPIENT });
-    const charge = aCharge({ id: "C-0123", amount: money(500n * UNIT, "wBRL") });
+    const charge = aCharge({ id: "C-0123", amount: money(500n * UNIT, "wXYZ" as Currency) });
 
     expect(() => buildLink(charge)).toThrow(UnsupportedRampCurrencyError);
   });

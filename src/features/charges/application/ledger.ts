@@ -1,5 +1,4 @@
-import type { Money } from "../../../core/money/money";
-import { money } from "../../../core/money/money";
+import { type Currency, DEFAULT_CURRENCY, type Money, money } from "../../../core/money/money";
 import {
   chargeDescription,
   createLedgerEntry,
@@ -31,6 +30,11 @@ export class AmbiguousCustomerError extends Error {
     this.name = "AmbiguousCustomerError";
     this.candidates = candidates;
   }
+}
+
+/** One country's part of the ledger. References still count over the whole ledger, so they never repeat. */
+function inCurrency(entries: readonly LedgerEntry[], currency: Currency): readonly LedgerEntry[] {
+  return entries.filter((entry) => entry.amount.currency === currency);
 }
 
 /** The ledger's name for the customer, the typed name for a new one, or an error when it is ambiguous. */
@@ -68,7 +72,8 @@ function idempotencyKeyOf(request: AddToLedgerRequest, customer: string): string
 export function addToLedgerUseCase(deps: { ledger: LedgerRepository; now: () => Date }) {
   async function attempt(request: AddToLedgerRequest): Promise<AddToLedgerResult> {
     const entries = await deps.ledger.list();
-    const customer = customerNamed(entries, request.customer);
+    // Customers belong to one country's shop: a Brazilian "Ana" is never the Argentine "Ana Pérez".
+    const customer = customerNamed(inCurrency(entries, request.amount.currency), request.customer);
     const idempotencyKey = idempotencyKeyOf(request, customer);
     const existing = entries.find((entry) => entry.idempotencyKey === idempotencyKey);
     if (existing) {
@@ -111,8 +116,13 @@ export function chargeFromLedgerUseCase(deps: {
   buildPaymentLink: PaymentLinkBuilder;
   createCharge: (request: CreateChargeRequest) => Promise<CreateChargeResult>;
 }) {
-  return async (request: { requestId: string; customer: string }): Promise<ChargeFromLedgerResult> => {
-    const entries = await deps.ledger.list();
+  return async (request: {
+    requestId: string;
+    customer: string;
+    /** The shop's country: only its customers and entries are charged. */
+    currency?: Currency;
+  }): Promise<ChargeFromLedgerResult> => {
+    const entries = inCurrency(await deps.ledger.list(), request.currency ?? DEFAULT_CURRENCY);
     const open = unbilledEntries(entries, customerNamed(entries, request.customer));
     const [first] = open;
     if (!first) {

@@ -2,7 +2,7 @@ import type { TransferSource } from "../../application/ports";
 import type { IncomingTransfer } from "../../domain/charge";
 import { blockRanges, type TransferLog, toIncomingTransfer } from "./transfer-log";
 
-/** Reads wARS transfers to the business address from the chain. */
+/** Reads wARS and wBRL transfers to the business address from the chain. */
 export interface TransferLogReader {
   latestBlock(): Promise<bigint>;
   /** Transfers to the business address in blocks [from, to], both inclusive. */
