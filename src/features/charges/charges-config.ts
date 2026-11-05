@@ -21,9 +21,9 @@ import { simulatedCheckoutLinkBuilder } from "./infrastructure/simulated-checkou
 const ADDRESS_PATTERN = /^0x[0-9a-fA-F]{40}$/;
 const BLOCK_PATTERN = /^\d+$/;
 
-// On-chain reading: blocks to wait before trusting a transfer, blocks per RPC query (forno accepts
-// 5000), and the minimum time between chain reads when the charge cards poll.
-const CONFIRMATIONS = 3n;
+// On-chain reading: transfers count once their block is safe (see TransferLogReader.safeBlock),
+// blocks per RPC query (forno accepts 5000), and the minimum time between chain reads when the
+// charge cards poll.
 const CHUNK_SIZE = 5_000n;
 const MIN_READ_INTERVAL_MS = 10_000;
 
@@ -174,7 +174,6 @@ export function chargesFeatureFromConfig(
       reader: viemTransferLogReader({ recipient: config.recipient }),
       store: scan(config.recipient),
       ...(config.startBlock === undefined ? {} : { startBlock: config.startBlock }),
-      confirmations: CONFIRMATIONS,
       chunkSize: CHUNK_SIZE,
       minIntervalMs: MIN_READ_INTERVAL_MS,
     }),
