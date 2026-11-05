@@ -4,7 +4,7 @@ import { openConversationInputs, useEveAgent } from "eve/react";
 import { ArrowUp, Bell, LoaderCircle, Smartphone, Store } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { type FormEvent, Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { format, localePath } from "@/core/i18n";
 import { useI18n } from "@/core/i18n/i18n-provider";
 import { cn } from "@/core/lib/utils";
@@ -18,6 +18,9 @@ import {
   AR,
   ActivityList,
   ApprovalCard,
+  PaymentNotices,
+  repeatedTextParts,
+  usePaymentNotices,
   CustomerChoice,
   candidatesFromPart,
   ChargeCard,
@@ -183,11 +186,10 @@ function writeSeen(shop: Shop, seenAt: string) {
  * What the agent reconciled on its own, as a bell in the header: a badge counts what the owner
  * has not seen yet, and the panel closes with its X, with Escape, or by tapping outside it.
  */
-function ActivityBell({ shop }: { shop: Shop }) {
+function ActivityBell({ shop, activity }: { shop: Shop; activity: ReturnType<typeof useActivity> }) {
   const [open, setOpen] = useState(false);
   const [seenAt, setSeenAt] = useState<string | undefined>(undefined);
   const box = useRef<HTMLDivElement>(null);
-  const activity = useActivity(shop.currency);
   const { dict } = useI18n();
   const label = dict.demo.activity;
 
@@ -254,6 +256,9 @@ function OwnerChat({ shop }: { shop: Shop }) {
   const isResuming = agent.status === "resuming";
   const bottom = useRef<HTMLDivElement>(null);
   // Writes wait for the owner: eve pauses each call until a person answers (approval: always()).
+  // One read of the activity for the bell and the chat: a payment shows in both.
+  const activity = useActivity(shop.currency);
+  const notices = usePaymentNotices(activity, agent.data.messages.length);
   const approvals = openConversationInputs(agent.data)
     .map((input) => input.request)
     .filter((request) => request.kind === "tool-approval");
@@ -268,7 +273,7 @@ function OwnerChat({ shop }: { shop: Shop }) {
   // Keep the newest message in view as it streams in.
   useEffect(() => {
     bottom.current?.scrollIntoView?.({ behavior: "smooth", block: "end" });
-  }, [parts.length, lastText, isBusy]);
+  }, [parts.length, lastText, isBusy, notices.length]);
 
   function say(message: string) {
     if (isResuming) {
@@ -303,22 +308,25 @@ function OwnerChat({ shop }: { shop: Shop }) {
         </div>
         {/* Only what the owner acts on: the bell, and the wallet where the payments arrive. */}
         <div data-header-actions="" className="ml-auto flex items-center gap-1">
-          <ActivityBell shop={shop} />
+          <ActivityBell shop={shop} activity={activity} />
           <WalletSection />
         </div>
       </header>
 
       <div aria-live="polite" className="flex flex-col gap-4 py-5">
         <Greeting shop={shop} version={ledgerWrites} onCharge={charge} disabled={isBusy || isResuming} />
-        {agent.data.messages.map((message) => {
+        <PaymentNotices notices={notices} afterMessage={0} />
+        {agent.data.messages.map((message, messageIndex) => {
           const newestLedger = lastLedgerReadIndex(message.parts);
+          const repeated = repeatedTextParts(message.parts);
           return (
+          <Fragment key={message.id}>
           <div
-            key={message.id}
             className={cn("flex flex-col gap-2", message.role === "user" ? "items-end" : "items-start")}
           >
             {message.parts.map((part, index) => {
               if (part.type === "text") {
+                if (repeated.has(index)) return null;
                 return (
                   <motion.p
                     key={part.id ?? index}
@@ -364,6 +372,8 @@ function OwnerChat({ shop }: { shop: Shop }) {
               return null;
             })}
           </div>
+          <PaymentNotices notices={notices} afterMessage={messageIndex + 1} />
+          </Fragment>
           );
         })}
         {approvals.map((request) => (

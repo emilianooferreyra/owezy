@@ -149,6 +149,32 @@ describe("demo chat", () => {
     expect(within(chat()).getByRole("button", { name: "Actividad" })).toBeTruthy();
   });
 
+  it("tells the owner in the chat when a payment arrives while it is open, not only in the bell", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      render(<DemoScreen />);
+      // The first read is history: it stays in the bell.
+      await vi.advanceTimersByTimeAsync(100);
+      expect(screen.queryByText(/Llegó el pago/)).toBeNull();
+
+      activity = [PAYMENT];
+      await vi.advanceTimersByTimeAsync(5_000);
+
+      const notice = await within(chat()).findByRole("status", { name: "Pago recibido" });
+      expect(within(notice).getByText("Llegó el pago de Juan Pérez: $57.000 (C-0001)")).toBeTruthy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not repeat in the chat a payment that was already there when it opened", async () => {
+    activity = [PAYMENT];
+    render(<DemoScreen />);
+
+    await within(chat()).findByRole("button", { name: "Actividad, 1 nueva" });
+    expect(screen.queryByText(/Llegó el pago/)).toBeNull();
+  });
+
   it("does not ring again for what the owner already saw, even after reloading", async () => {
     activity = [PAYMENT];
     const first = render(<DemoScreen />);
@@ -266,6 +292,25 @@ describe("demo chat", () => {
     fireEvent.click(within(card).getByRole("button", { name: "Confirmar" }));
 
     expect(agent.respond).toHaveBeenCalledWith([{ requestId: "request-1", optionId: "approve" }]);
+  });
+
+  it("shows a confirmation once when the model repeats it after an approval", () => {
+    const confirmation = "Listo, el cobro quedó creado para Pablo Pio por $100.000.";
+    agent.data.messages = [
+      {
+        id: "turn_0:assistant",
+        role: "assistant",
+        parts: [
+          { type: "step-start" },
+          { type: "text", text: confirmation },
+          { type: "step-start" },
+          { type: "text", text: confirmation },
+        ],
+      },
+    ];
+    render(<DemoScreen />);
+
+    expect(screen.getAllByText(confirmation)).toHaveLength(1);
   });
 
   it("shows the agent's **bold** as bold, not as asterisks", () => {
