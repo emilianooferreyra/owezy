@@ -56,6 +56,7 @@ describe("reconcilePayments use case", () => {
       findById: (id) => charges.findById(id),
       findByIdempotencyKey: (key) => charges.findByIdempotencyKey(key),
       list: () => charges.list(),
+      discard: (charge) => charges.discard(charge),
       save: async () => {
         throw new ChargeConflictError("C-0001");
       },

@@ -1,4 +1,4 @@
-import { and, asc, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
 import type { Currency } from "../../../../core/money/money";
 import type { Database } from "../../../../core/storage/database";
 import { LedgerConflictError, type LedgerRepository } from "../../application/ports";
@@ -49,14 +49,26 @@ export class PostgresLedgerRepository implements LedgerRepository {
     }
   }
 
-  async assignCharge(entryIds: readonly string[], chargeId: string): Promise<void> {
+  async assignCharge(entryIds: readonly string[], chargeId: string): Promise<readonly string[]> {
     if (entryIds.length === 0) {
-      return;
+      return [];
     }
-    // Only entries no charge includes yet: an entry is never charged twice.
-    await this.db
+    // Only entries no charge includes yet, or this one: an entry is never charged twice. The check
+    // and the write are one statement, so two requests racing for an entry cannot both get it.
+    const rows = await this.db
       .update(ledgerEntries)
       .set({ chargeId })
-      .where(and(inArray(ledgerEntries.id, [...entryIds]), isNull(ledgerEntries.chargeId)));
+      .where(
+        and(
+          inArray(ledgerEntries.id, [...entryIds]),
+          or(isNull(ledgerEntries.chargeId), eq(ledgerEntries.chargeId, chargeId)),
+        ),
+      )
+      .returning({ id: ledgerEntries.id });
+    return rows.map(({ id }) => id);
+  }
+
+  async releaseCharge(chargeId: string): Promise<void> {
+    await this.db.update(ledgerEntries).set({ chargeId: null }).where(eq(ledgerEntries.chargeId, chargeId));
   }
 }

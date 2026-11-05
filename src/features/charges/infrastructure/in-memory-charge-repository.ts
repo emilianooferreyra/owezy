@@ -17,6 +17,13 @@ export class InMemoryChargeRepository implements ChargeRepository {
     return [...this.#charges.values()];
   }
 
+  async discard(charge: Charge): Promise<void> {
+    const saved = this.#charges.get(charge.id);
+    if (saved?.status === "pending" && saved.idempotencyKey === charge.idempotencyKey) {
+      this.#charges.delete(charge.id);
+    }
+  }
+
   async save(charge: Charge): Promise<void> {
     this.#charges.set(charge.id, charge);
   }

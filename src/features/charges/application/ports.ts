@@ -8,6 +8,12 @@ export interface ChargeRepository {
   findByIdempotencyKey(key: string): Promise<Charge | undefined>;
   list(): Promise<readonly Charge[]>;
   save(charge: Charge): Promise<void>;
+  /**
+   * Removes a charge its request created and nobody saw, when that request lost a race for the
+   * ledger entries the charge was for. Only a pending charge created by the same request
+   * (idempotency key) goes; anything else stays.
+   */
+  discard(charge: Charge): Promise<void>;
 }
 
 /** What the agent did on its own. Append-only: recording an entry whose id is already there keeps the first. */
@@ -46,8 +52,14 @@ export interface LedgerRepository {
   list(): Promise<readonly LedgerEntry[]>;
   /** Writes a new entry. Throws LedgerConflictError when another writer took its reference first. */
   add(entry: LedgerEntry): Promise<void>;
-  /** Links entries to the charge that includes them. Entries already in a charge are left as they are. */
-  assignCharge(entryIds: readonly string[], chargeId: string): Promise<void>;
+  /**
+   * Links entries to the charge that includes them, in one step. Entries already in another charge
+   * are left as they are. Returns the ids of the given entries this charge includes afterwards, so
+   * the caller can tell whether another request charged some of them first.
+   */
+  assignCharge(entryIds: readonly string[], chargeId: string): Promise<readonly string[]>;
+  /** Unlinks every entry from a charge, so they can be charged again. */
+  releaseCharge(chargeId: string): Promise<void>;
 }
 
 /** Another writer saved an entry with the same reference first. Reading again and retrying resolves it. */

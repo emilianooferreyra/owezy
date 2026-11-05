@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { Currency } from "../../../../core/money/money";
 import type { Database } from "../../../../core/storage/database";
 import { ChargeConflictError, type ChargeRepository } from "../../application/ports";
@@ -54,6 +54,18 @@ export class PostgresChargeRepository implements ChargeRepository {
   async list(): Promise<readonly Charge[]> {
     const rows = await this.db.select().from(charges).orderBy(asc(charges.createdAt), asc(charges.id));
     return rows.map(fromRow);
+  }
+
+  async discard(charge: Charge): Promise<void> {
+    await this.db
+      .delete(charges)
+      .where(
+        and(
+          eq(charges.id, charge.id),
+          eq(charges.status, "pending"),
+          sql`${charges.idempotencyKey} is not distinct from ${charge.idempotencyKey ?? null}`,
+        ),
+      );
   }
 
   async save(charge: Charge): Promise<void> {

@@ -50,13 +50,27 @@ export class FileLedgerRepository implements LedgerRepository {
     await writeJsonFile(this.path, [...records, toStored(entry)]);
   }
 
-  async assignCharge(entryIds: readonly string[], chargeId: string): Promise<void> {
+  async assignCharge(entryIds: readonly string[], chargeId: string): Promise<readonly string[]> {
     const ids = new Set(entryIds);
     const records = (await this.records()).map((record) => {
       const stored = record as Partial<StoredEntry>;
       return stored.id !== undefined && ids.has(stored.id) && stored.chargeId === undefined
         ? { ...stored, chargeId }
         : record;
+    });
+    await writeJsonFile(this.path, records);
+    return records.flatMap((record) => {
+      const stored = record as Partial<StoredEntry>;
+      return stored.id !== undefined && ids.has(stored.id) && stored.chargeId === chargeId ? [stored.id] : [];
+    });
+  }
+
+  async releaseCharge(chargeId: string): Promise<void> {
+    const records = (await this.records()).map((record) => {
+      const stored = record as Partial<StoredEntry>;
+      if (stored.chargeId !== chargeId) return record;
+      const { chargeId: _, ...unlinked } = stored;
+      return unlinked;
     });
     await writeJsonFile(this.path, records);
   }

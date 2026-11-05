@@ -116,12 +116,14 @@ export function chargeFromLedgerUseCase(deps: {
   buildPaymentLink: PaymentLinkBuilder;
   createCharge: (request: CreateChargeRequest) => Promise<CreateChargeResult>;
 }) {
-  return async (request: {
+  type Request = Readonly<{
     requestId: string;
     customer: string;
     /** The shop's country: only its customers and entries are charged. */
     currency?: Currency;
-  }): Promise<ChargeFromLedgerResult> => {
+  }>;
+
+  async function attempt(request: Request): Promise<ChargeFromLedgerResult> {
     const entries = inCurrency(await deps.ledger.list(), request.currency ?? DEFAULT_CURRENCY);
     const open = unbilledEntries(entries, customerNamed(entries, request.customer));
     const [first] = open;
@@ -144,10 +146,34 @@ export function chargeFromLedgerUseCase(deps: {
       description: chargeDescription(open),
       amount: money(total, first.amount.currency),
     });
-    await deps.ledger.assignCharge(
-      open.map(({ id }) => id),
-      result.charge.id,
+    const linked = new Set(
+      await deps.ledger.assignCharge(
+        open.map(({ id }) => id),
+        result.charge.id,
+      ),
     );
+    if (open.some((entry) => !linked.has(entry.id))) {
+      // Another request charged some of these entries between this one's read and its link. The
+      // charge this request just made is for entries it does not own: undo it before anyone sees
+      // it, then read the ledger again.
+      if (result.created) {
+        await deps.ledger.releaseCharge(result.charge.id);
+        await deps.charges.discard(result.charge);
+      }
+      throw new LedgerConflictError(first.id);
+    }
     return { ...result, entries: open.map((entry) => ({ ...entry, chargeId: result.charge.id })) };
+  }
+
+  return async (request: Request): Promise<ChargeFromLedgerResult> => {
+    for (let attempts = 1; ; attempts += 1) {
+      try {
+        return await attempt(request);
+      } catch (error) {
+        if (!(error instanceof LedgerConflictError) || attempts >= MAX_ATTEMPTS) {
+          throw error;
+        }
+      }
+    }
   };
 }

@@ -59,5 +59,30 @@ export function ledgerRepositoryContract(name: string, open: () => Promise<Ledge
         ["L-0003", undefined],
       ]);
     });
+
+    it("says which of the entries the charge includes, so a request can tell another one charged some first", async () => {
+      await ledger.add(anEntry("L-0001"));
+      await ledger.add(anEntry("L-0002"));
+      await ledger.assignCharge(["L-0001"], "C-0001");
+
+      expect(await ledger.assignCharge(["L-0001", "L-0002"], "C-0002")).toEqual(["L-0002"]);
+      // Linking again to the same charge, as a retried request does, still counts the entries.
+      expect(await ledger.assignCharge(["L-0002"], "C-0002")).toEqual(["L-0002"]);
+      expect(await ledger.assignCharge([], "C-0002")).toEqual([]);
+    });
+
+    it("unlinks every entry of one charge, and only of that charge", async () => {
+      await ledger.add(anEntry("L-0001"));
+      await ledger.add(anEntry("L-0002"));
+      await ledger.assignCharge(["L-0001"], "C-0001");
+      await ledger.assignCharge(["L-0002"], "C-0002");
+
+      await ledger.releaseCharge("C-0002");
+
+      expect((await ledger.list()).map(({ id, chargeId }) => [id, chargeId])).toEqual([
+        ["L-0001", "C-0001"],
+        ["L-0002", undefined],
+      ]);
+    });
   });
 }

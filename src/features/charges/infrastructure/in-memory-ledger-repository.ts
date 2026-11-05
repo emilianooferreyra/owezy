@@ -16,11 +16,21 @@ export class InMemoryLedgerRepository implements LedgerRepository {
     this.#entries.push(entry);
   }
 
-  async assignCharge(entryIds: readonly string[], chargeId: string): Promise<void> {
+  async assignCharge(entryIds: readonly string[], chargeId: string): Promise<readonly string[]> {
     const ids = new Set(entryIds);
     this.#entries.forEach((entry, index) => {
       if (ids.has(entry.id) && entry.chargeId === undefined) {
         this.#entries[index] = { ...entry, chargeId };
+      }
+    });
+    return this.#entries.filter((entry) => ids.has(entry.id) && entry.chargeId === chargeId).map(({ id }) => id);
+  }
+
+  async releaseCharge(chargeId: string): Promise<void> {
+    this.#entries.forEach((entry, index) => {
+      if (entry.chargeId === chargeId) {
+        const { chargeId: _, ...unlinked } = entry;
+        this.#entries[index] = unlinked;
       }
     });
   }

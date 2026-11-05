@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "../../../../core/storage/database";
 import { ChargeConflictError } from "../../application/ports";
 import { applyPayment } from "../../domain/charge";
+import { chargeDiscardContract } from "../../testing/charge-repository-discard-contract";
 import { aCharge, aTransfer, UNIT, wars } from "../../testing/fixtures";
 import { PostgresChargeRepository } from "./postgres-charge-repository";
 import { PGLITE_STARTUP_MS, testDatabase } from "./test-database";
@@ -123,3 +124,5 @@ describe("PostgresChargeRepository", () => {
     expect(await repository.findById("C-0001")).toMatchObject({ status: "paid" });
   });
 });
+
+chargeDiscardContract("PostgresChargeRepository", async () => new PostgresChargeRepository(await testDatabase()));
