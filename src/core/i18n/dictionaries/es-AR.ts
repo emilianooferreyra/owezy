@@ -198,6 +198,14 @@ export const esAR = {
       BR: "Ej: Anotá que João llevó 2 tortas por R$ 300",
     },
     send: "Enviar",
+    approval: {
+      label: "Confirmación",
+      create_charge: "¿Creo el cobro de {amount} a {customer} por {description}?",
+      add_to_ledger: "¿Anoto que {customer} se llevó {description} por {amount}?",
+      charge_from_ledger: "¿Le mando a {customer} el link por todo lo que tiene sin cobrar en la libreta?",
+      approve: "Confirmar",
+      cancel: "Cancelar",
+    },
   },
   ledger: {
     title: "Libreta",

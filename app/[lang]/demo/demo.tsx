@@ -1,6 +1,6 @@
 "use client";
 
-import { useEveAgent } from "eve/react";
+import { openConversationInputs, useEveAgent } from "eve/react";
 import { ArrowUp, Bell, LoaderCircle, Smartphone, Store } from "lucide-react";
 import Link from "next/link";
 import { motion } from "motion/react";
@@ -17,6 +17,7 @@ import { WalletSection } from "@/features/wallet/ui";
 import {
   AR,
   ActivityList,
+  ApprovalCard,
   CustomerChoice,
   candidatesFromPart,
   ChargeCard,
@@ -252,6 +253,10 @@ function OwnerChat({ shop }: { shop: Shop }) {
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const isResuming = agent.status === "resuming";
   const bottom = useRef<HTMLDivElement>(null);
+  // Writes wait for the owner: eve pauses each call until a person answers (approval: always()).
+  const approvals = openConversationInputs(agent.data)
+    .map((input) => input.request)
+    .filter((request) => request.kind === "tool-approval");
 
   // Every finished write to the ledger reads it again, so the greeting's card stays current.
   const parts = agent.data.messages.flatMap((message) => message.parts);
@@ -361,7 +366,15 @@ function OwnerChat({ shop }: { shop: Shop }) {
           </div>
           );
         })}
-        {isBusy && (
+        {approvals.map((request) => (
+          <ApprovalCard
+            key={request.requestId}
+            request={request}
+            onRespond={(requestId, optionId) => void agent.respond([{ requestId, optionId }])}
+            disabled={isResuming}
+          />
+        ))}
+        {isBusy && approvals.length === 0 && (
           <p className="inline-flex items-center gap-2 text-sm text-muted-foreground">
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> {copy.thinking}
           </p>

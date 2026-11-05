@@ -1,4 +1,5 @@
 import { defineTool } from "eve/tools";
+import { always } from "eve/tools/approval";
 import { z } from "zod";
 import { formatMoney } from "../../src/core/money/money";
 import { chargesRuntime, shopCurrency } from "../../src/features/charges";
@@ -24,6 +25,9 @@ export default defineTool({
       .describe('Amount in whole units of the currency as a plain decimal string, e.g. "85000" or "85000.5". No thousands separators.'),
     currency: shopCurrency,
   }),
+  // A write the owner did not ask for never runs: eve pauses every call until a person confirms it
+  // in the chat. Enforced by the runtime, not the model, so a prompt injection cannot skip it.
+  approval: always(),
   label: {
     start: ({ customer, amount, currency }) => `Cobrar ${formatMoney(amount, currency ?? "wARS")} a ${customer}`,
   },
