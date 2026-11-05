@@ -53,6 +53,14 @@ describe("chargeFromPart", () => {
     );
   });
 
+  it("returns the charge from a finished share_charge call, so a link sent again shows as its card", () => {
+    expect(chargeFromPart(toolPart({ toolName: "share_charge" }))).toEqual(CHARGE);
+  });
+
+  it("shows no card when share_charge found nothing to share", () => {
+    expect(chargeFromPart(toolPart({ toolName: "share_charge", output: { shared: false, reason: "No charge C-9999." } }))).toBeUndefined();
+  });
+
   it("ignores text parts", () => {
     expect(chargeFromPart({ type: "text", text: "hola" } as EveMessagePart)).toBeUndefined();
   });

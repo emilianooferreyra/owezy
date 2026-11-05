@@ -197,6 +197,8 @@ export const en = {
       BR: "E.g. Write down that João took 2 cakes for R$ 300",
     },
     send: "Send",
+    paymentArrivedLabel: "Payment received",
+    paymentArrived: "{customer}'s payment arrived: {amount} ({charge})",
     approval: {
       label: "Confirmation",
       create_charge: "Create a {amount} charge to {customer} for {description}?",

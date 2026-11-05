@@ -197,6 +197,8 @@ export const ptBR = {
       BR: "Ex.: Anota que o João levou 2 bolos por R$ 300",
     },
     send: "Enviar",
+    paymentArrivedLabel: "Pagamento recebido",
+    paymentArrived: "Chegou o pagamento de {customer}: {amount} ({charge})",
     approval: {
       label: "Confirmação",
       create_charge: "Crio a cobrança de {amount} para {customer} por {description}?",

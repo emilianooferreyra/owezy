@@ -198,6 +198,8 @@ export const esAR = {
       BR: "Ej: Anotá que João llevó 2 tortas por R$ 300",
     },
     send: "Enviar",
+    paymentArrivedLabel: "Pago recibido",
+    paymentArrived: "Llegó el pago de {customer}: {amount} ({charge})",
     approval: {
       label: "Confirmación",
       create_charge: "¿Creo el cobro de {amount} a {customer} por {description}?",

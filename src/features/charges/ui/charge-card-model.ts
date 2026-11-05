@@ -6,7 +6,7 @@ import type { ChargeView } from "../charges-feature";
 import { type Country, currencyOf, timeZoneOf } from "./shops";
 
 // The tools whose output is a charge the owner can send: each shows as a charge card.
-const CHARGE_TOOLS = new Set(["create_charge", "charge_from_ledger"]);
+const CHARGE_TOOLS = new Set(["create_charge", "charge_from_ledger", "share_charge"]);
 
 // Tool outputs reach the browser as `unknown`, so the card validates them before rendering.
 const chargeViewSchema = z.object({
