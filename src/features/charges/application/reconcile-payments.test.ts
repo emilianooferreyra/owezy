@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { InMemoryActivityLog } from "../infrastructure/in-memory-activity-log";
+import { ChargeConflictError, type ChargeRepository } from "./ports";
 import { InMemoryChargeRepository } from "../infrastructure/in-memory-charge-repository";
 import { SimulatedTransferSource } from "../infrastructure/simulated-transfer-source";
 import { aCharge, wars } from "../testing/fixtures";
@@ -45,6 +46,26 @@ describe("reconcilePayments use case", () => {
     await reconcile();
 
     expect(await charges.findById("C-0002")).toMatchObject({ status: "pending" });
+  });
+
+  it("leaves a charge another run paid at the same time to that run, without failing or claiming it", async () => {
+    const { charges, transfers } = await setup(["C-0001", 85_000n]);
+    await transfers.simulatePayment(wars(85_000n));
+    // The database refuses the save: another reconciliation paid C-0001 between this run's read and write.
+    const racing: ChargeRepository = {
+      findById: (id) => charges.findById(id),
+      findByIdempotencyKey: (key) => charges.findByIdempotencyKey(key),
+      list: () => charges.list(),
+      save: async () => {
+        throw new ChargeConflictError("C-0001");
+      },
+    };
+    const activity = new InMemoryActivityLog();
+
+    const report = await reconcilePaymentsUseCase({ charges: racing, transfers, activity })();
+
+    expect(report).toEqual({ paid: [], unmatched: [], ambiguous: [] });
+    expect(await activity.list()).toEqual([]);
   });
 
   it("reports a transfer that matches no charge", async () => {

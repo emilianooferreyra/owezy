@@ -1,6 +1,6 @@
 import { type ActivityEntry, ambiguousPayment, matchedPayment, unmatchedPayment } from "../domain/activity";
 import { applyPayment, type Charge, matchTransfer } from "../domain/charge";
-import type { ActivityLog, ChargeRepository, TransferSource } from "./ports";
+import { type ActivityLog, ChargeConflictError, type ChargeRepository, type TransferSource } from "./ports";
 
 export type ReconciliationReport = Readonly<{
   /** Ids of the charges this run marked as paid. */
@@ -35,7 +35,14 @@ export function reconcilePaymentsUseCase(deps: {
       const match = matchTransfer([...charges.values()], transfer);
       if (match.kind === "matched") {
         const paid = applyPayment(match.charge, transfer);
-        await deps.charges.save(paid);
+        try {
+          await deps.charges.save(paid);
+        } catch (error) {
+          // Another run paid this charge between this run's read and its write: that run reports
+          // and records it. This transfer is looked at again on the next run, against fresh data.
+          if (error instanceof ChargeConflictError) continue;
+          throw error;
+        }
         charges.set(paid.id, paid);
         report.paid.push(paid.id);
         entries.push(matchedPayment(transfer, paid, recordedAt));
