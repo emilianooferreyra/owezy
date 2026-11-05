@@ -1,4 +1,4 @@
-import { type Address, createPublicClient, http, parseAbiItem } from "viem";
+import { type Address, createPublicClient, http, parseAbiItem, type Transport } from "viem";
 import { celo } from "viem/chains";
 import { TOKENS } from "../../../../core/celo/tokens";
 import type { TransferLogReader } from "./onchain-transfer-source";
@@ -11,15 +11,21 @@ const TRANSFER = parseAbiItem("event Transfer(address indexed from, address inde
  * RPC (forno by default). One query covers all tokens, so the scan cursor stays one per address.
  * Read-only: no wallet, no keys. Some RPCs omit `blockTimestamp` on logs; then the block is fetched.
  */
-export function viemTransferLogReader(config: { recipient: Address; rpcUrl?: string }): TransferLogReader {
-  const client = createPublicClient({ chain: celo, transport: http(config.rpcUrl) });
+export function viemTransferLogReader(config: {
+  recipient: Address;
+  rpcUrl?: string;
+  transport?: Transport;
+}): TransferLogReader {
+  const client = createPublicClient({ chain: celo, transport: config.transport ?? http(config.rpcUrl) });
 
   async function timestampOf(blockNumber: bigint, fromLog: bigint | null | undefined): Promise<bigint> {
     return fromLog ?? (await client.getBlock({ blockNumber })).timestamp;
   }
 
   return {
-    latestBlock: () => client.getBlockNumber(),
+    async safeBlock() {
+      return (await client.getBlock({ blockTag: "safe" })).number;
+    },
 
     async transfersTo(from, to) {
       const logs = await client.getLogs({

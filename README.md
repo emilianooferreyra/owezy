@@ -121,7 +121,9 @@ Built:
   from the code, not from the model's arithmetic.
 - Reconciliation with simulated payments, file storage, the two-sided demo and receipts.
 - In `ripio` mode, an on-chain reader of wARS `Transfer` events to the business address: it waits
-  for confirmations, scans only new blocks, and real receipts link the transaction on Celoscan.
+  until a transfer's block is `safe` (Celo is an OP Stack L2: a block counts once its data is posted
+  to Ethereum, a few minutes, instead of trusting the sequencer's latest block), scans only new
+  blocks, and real receipts link the transaction on Celoscan.
 - A read-only wallet that shows the real wARS balance.
 - Brazil: a shop charges, writes down and reconciles in wBRL. The reader watches both tokens, each
   transfer takes the currency of the token that moved, and the two countries' ledgers never mix.

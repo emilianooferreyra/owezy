@@ -7,3 +7,12 @@ allowBuilds:
   node-liblzma: false
   sharp: false
   utf-8-validate: false
+
+# Patched transitive versions for advisories reachable in production (pnpm audit), within the same
+# major so nothing that depends on them breaks. Remove each one once its parent ships the fix.
+overrides:
+  "undici@>=7.0.0 <7.30.1": "^7.30.1"
+  "undici@>=8.0.0 <8.12.2": "^8.12.2"
+  "ws@>=8.0.0 <8.21.0": "^8.21.0"
+  "follow-redirects@>=1.16.0 <1.16.2": "^1.16.2"
+  "zod@>=4.0.0 <4.6.6": "^4.6.6"

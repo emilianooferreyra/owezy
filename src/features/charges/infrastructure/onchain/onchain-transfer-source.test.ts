@@ -21,13 +21,13 @@ function transferAt(blockNumber: bigint, logIndex = 0): TransferLog {
   };
 }
 
-/** A chain double: logs by block, a movable head, and a record of every query. */
+/** A chain double: logs by block, a movable safe head, and a record of every query. */
 class FakeChain implements TransferLogReader {
   head = 1_000n;
   logs: TransferLog[] = [];
   queries: Array<[bigint, bigint]> = [];
 
-  async latestBlock() {
+  async safeBlock() {
     return this.head;
   }
 
@@ -46,7 +46,6 @@ function setup(options: { minIntervalMs?: number } = {}) {
       reader: chain,
       store: overrides.store ?? store,
       startBlock: 900n,
-      confirmations: 3n,
       chunkSize: 50n,
       minIntervalMs: options.minIntervalMs ?? 0,
       now: () => clock,
@@ -55,7 +54,7 @@ function setup(options: { minIntervalMs?: number } = {}) {
 }
 
 describe("OnchainTransferSource", () => {
-  it("reads transfers from the start block up to the confirmed head", async () => {
+  it("reads transfers from the start block up to the safe head", async () => {
     const { chain, source } = setup();
     chain.logs = [transferAt(950n)];
 
@@ -63,7 +62,7 @@ describe("OnchainTransferSource", () => {
 
     expect(transfers.map((transfer) => transfer.id)).toEqual([`${transferAt(950n).transactionHash}:0`]);
     expect(chain.queries.at(0)?.[0]).toBe(900n);
-    expect(chain.queries.at(-1)?.[1]).toBe(997n);
+    expect(chain.queries.at(-1)?.[1]).toBe(1_000n);
   });
 
   it("splits the scan into chunks the RPC accepts", async () => {
@@ -73,17 +72,18 @@ describe("OnchainTransferSource", () => {
 
     expect(chain.queries).toEqual([
       [900n, 949n],
-      [950n, 997n],
+      [950n, 999n],
+      [1_000n, 1_000n],
     ]);
   });
 
-  it("waits for confirmations before counting a transfer", async () => {
+  it("does not count a transfer until its block is safe (backed by data on Ethereum)", async () => {
     const { chain, source } = setup();
-    chain.logs = [transferAt(999n)];
+    chain.logs = [transferAt(1_001n)];
 
     expect(await source().listIncoming()).toEqual([]);
 
-    chain.head = 1_002n;
+    chain.head = 1_001n;
     expect(await source().listIncoming()).toHaveLength(1);
   });
 
@@ -98,7 +98,7 @@ describe("OnchainTransferSource", () => {
 
     const transfers = await reader.listIncoming();
 
-    expect(chain.queries).toEqual([[998n, 1_007n]]);
+    expect(chain.queries).toEqual([[1_001n, 1_010n]]);
     expect(transfers).toHaveLength(2);
   });
 
@@ -129,7 +129,6 @@ describe("OnchainTransferSource", () => {
     const source = new OnchainTransferSource({
       reader: chain,
       store: new InMemoryScanStore(),
-      confirmations: 3n,
       chunkSize: 50n,
       minIntervalMs: 0,
     });
@@ -138,9 +137,9 @@ describe("OnchainTransferSource", () => {
     expect(chain.queries).toEqual([]);
 
     chain.head = 1_005n;
-    chain.logs.push(transferAt(1_000n));
+    chain.logs.push(transferAt(1_003n));
     expect((await source.listIncoming()).map((transfer) => transfer.id)).toEqual([
-      `${transferAt(1_000n).transactionHash}:0`,
+      `${transferAt(1_003n).transactionHash}:0`,
     ]);
   });
 
