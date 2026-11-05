@@ -13,6 +13,9 @@ export default defineTool({
     description: z.string().trim().min(1).max(120).describe('What they took, e.g. "2 tortas".'),
     amount: z
       .string()
+      // Ten digits of whole units and 18 decimals at most: the domain caps amounts, this keeps a
+      // huge string from being parsed at all.
+      .max(30)
       .regex(/^\d+(\.\d+)?$/)
       .describe('Amount in whole units of the currency as a plain decimal string, e.g. "30000". No thousands separators.'),
     currency: shopCurrency,

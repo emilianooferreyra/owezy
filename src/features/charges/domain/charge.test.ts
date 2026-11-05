@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CurrencyMismatchError, money } from "../../../core/money/money";
+import { type Currency, CurrencyMismatchError, money, UnknownCurrencyError } from "../../../core/money/money";
 import { aCharge, aTransfer, UNIT, wars } from "../testing/fixtures";
 import {
   applyPayment,
@@ -45,6 +45,21 @@ describe("Charge", () => {
 
   it("rejects a negative amount", () => {
     expect(() => aCharge({ amount: money(-1n, "wARS") })).toThrow(InvalidChargeAmountError);
+  });
+
+  it("accepts up to a thousand million whole units, and rejects a cent more", () => {
+    expect(aCharge({ amount: wars(1_000_000_000n) }).amount).toEqual(wars(1_000_000_000n));
+    expect(() => aCharge({ amount: money(wars(1_000_000_000n).amount + UNIT / 100n, "wARS") })).toThrow(
+      InvalidChargeAmountError,
+    );
+  });
+
+  it("rejects a currency the app does not know, instead of guessing its decimals", () => {
+    expect(() => aCharge({ amount: money(1n, "wXYZ" as Currency) })).toThrow(UnknownCurrencyError);
+  });
+
+  it("rejects an amount too large for the database to hold, with a message the owner can act on", () => {
+    expect(() => aCharge({ amount: money(10n ** 100n, "wARS") })).toThrow(/at most 1000000000/);
   });
 });
 

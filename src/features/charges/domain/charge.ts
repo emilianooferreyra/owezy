@@ -1,4 +1,4 @@
-import { equals, type Money, money, oneCent } from "../../../core/money/money";
+import { equals, exceedsMaximum, MAX_WHOLE_UNITS, type Money, money, oneCent } from "../../../core/money/money";
 
 export type ChargeStatus = "pending" | "paid";
 
@@ -35,7 +35,11 @@ export type TransferMatch =
 
 export class InvalidChargeAmountError extends Error {
   constructor(amount: bigint) {
-    super(`A charge amount must be greater than zero, got ${amount}`);
+    super(
+      amount <= 0n
+        ? `A charge amount must be greater than zero, got ${amount}`
+        : `A charge amount must be at most ${MAX_WHOLE_UNITS} whole units`,
+    );
     this.name = "InvalidChargeAmountError";
   }
 }
@@ -55,7 +59,7 @@ export function createCharge(input: {
   createdAt: string;
   idempotencyKey?: string;
 }): Charge {
-  if (input.amount.amount <= 0n) {
+  if (input.amount.amount <= 0n || exceedsMaximum(input.amount)) {
     throw new InvalidChargeAmountError(input.amount.amount);
   }
   const customer = input.customer.trim();
