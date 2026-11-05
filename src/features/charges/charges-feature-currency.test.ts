@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PaymentLinkBuilder } from "./application/ports";
-import { createChargesFeature } from "./charges-feature";
+import { ChargeNotFoundError, createChargesFeature } from "./charges-feature";
 import { InMemoryChargeRepository } from "./infrastructure/in-memory-charge-repository";
 import { InMemoryLedgerRepository } from "./infrastructure/in-memory-ledger-repository";
 import { SimulatedTransferSource } from "./infrastructure/simulated-transfer-source";
@@ -125,5 +125,32 @@ describe("charges feature: one shop per country", () => {
 
     expect(outcome).toBe("paid");
     expect(paid.status).toBe("paid");
+  });
+
+  describe("sharing a charge again", () => {
+    it("gives back an existing charge with its link, so the owner can send it again", async () => {
+      const shop = feature();
+      const created = await shop.createCharge({ requestId: "t1", customer: "Carlos Ruiz", description: "torta", amount: "28000" });
+
+      const shared = await shop.shareCharge({ reference: created.id, currency: "wARS" });
+
+      expect(shared).toMatchObject({ id: created.id, customer: "Carlos Ruiz", amount: "28000", status: "pending", paymentLink: created.paymentLink });
+    });
+
+    it("shows a charge that was already paid as paid, so it is not sent twice", async () => {
+      const shop = feature();
+      const created = await shop.createCharge({ requestId: "t1", customer: "Carlos Ruiz", description: "torta", amount: "28000" });
+      await shop.simulatePayment(created.id);
+
+      expect(await shop.shareCharge({ reference: created.id, currency: "wARS" })).toMatchObject({ status: "paid" });
+    });
+
+    it("never shares another country's charge, as if it did not exist", async () => {
+      const shop = feature();
+      const brazilian = await shop.createCharge({ requestId: "t1", customer: "João", description: "pão", amount: "120", currency: "wBRL" });
+
+      await expect(shop.shareCharge({ reference: brazilian.id, currency: "wARS" })).rejects.toBeInstanceOf(ChargeNotFoundError);
+      await expect(shop.shareCharge({ reference: "C-9999", currency: "wARS" })).rejects.toBeInstanceOf(ChargeNotFoundError);
+    });
   });
 });

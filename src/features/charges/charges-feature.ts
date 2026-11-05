@@ -212,6 +212,19 @@ export function createChargesFeature(deps: {
       return charge && toView(charge);
     },
 
+    /**
+     * An existing charge with its link, for sending it again. It reconciles first, so a charge
+     * that was already paid shows as paid. A charge of another country's shop does not exist here.
+     */
+    async shareCharge(input: { reference: string; currency?: Currency }): Promise<ChargeView> {
+      await syncPayments();
+      const charge = await findOrFail(input.reference);
+      if (charge.amount.currency !== (input.currency ?? DEFAULT_CURRENCY)) {
+        throw new ChargeNotFoundError(input.reference);
+      }
+      return toView(charge);
+    },
+
     /** Several charges with one repository read, for the cards' shared status poll. */
     async getCharges(ids: readonly string[]): Promise<ChargeView[]> {
       const byId = new Map((await deps.charges.list()).map((charge) => [charge.id, charge]));
