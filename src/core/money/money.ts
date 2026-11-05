@@ -26,6 +26,29 @@ const DECIMALS: Record<Currency, number> = {
 };
 
 /**
+ * The most one charge or ledger entry may be, in whole units: far above what a small shop bills,
+ * and far below what the database column holds (numeric(78, 0)), so an amount typed by mistake or
+ * by an attacker is refused with a clear message instead of failing the write.
+ */
+export const MAX_WHOLE_UNITS = 1_000_000_000n;
+
+/** Whether an amount is above MAX_WHOLE_UNITS. */
+export function exceedsMaximum(value: Money): boolean {
+  const decimals = DECIMALS[value.currency];
+  if (decimals === undefined) {
+    throw new UnknownCurrencyError(value.currency);
+  }
+  return value.amount > MAX_WHOLE_UNITS * 10n ** BigInt(decimals);
+}
+
+export class UnknownCurrencyError extends Error {
+  constructor(currency: string) {
+    super(`"${currency}" is not a currency the app knows`);
+    this.name = "UnknownCurrencyError";
+  }
+}
+
+/**
  * Formats base units as a decimal string in whole units, e.g. 85000.5.
  * `maxFractionDigits` truncates, never rounds: a balance must not show money that is not there.
  */

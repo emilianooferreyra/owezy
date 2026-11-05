@@ -88,6 +88,21 @@ export class FileChargeRepository implements ChargeRepository {
     await writeJsonFile(this.path, records);
   }
 
+  async discard(charge: Charge): Promise<void> {
+    const stored = await this.records();
+    if (!stored) {
+      return;
+    }
+    const saved = (await this.list()).find(({ id }) => id === charge.id);
+    if (saved?.status !== "pending" || saved.idempotencyKey !== charge.idempotencyKey) {
+      return;
+    }
+    await writeJsonFile(
+      this.path,
+      stored.filter((record) => idOf(record) !== charge.id),
+    );
+  }
+
   /** The raw records, or undefined when the file holds something other than a list. */
   private async records(): Promise<readonly unknown[] | undefined> {
     const stored = await readJsonFile<unknown>(this.path, []);

@@ -1,4 +1,5 @@
 import { defineTool } from "eve/tools";
+import { always } from "eve/tools/approval";
 import { z } from "zod";
 import { AmbiguousCustomerError, chargesRuntime, NothingToChargeError, shopCurrency } from "../../src/features/charges";
 
@@ -11,6 +12,9 @@ export default defineTool({
     customer: z.string().trim().min(1).max(80).describe('Who to charge, e.g. "Juan Pérez".'),
     currency: shopCurrency,
   }),
+  // A write the owner did not ask for never runs: eve pauses every call until a person confirms it
+  // in the chat. Enforced by the runtime, not the model, so a prompt injection cannot skip it.
+  approval: always(),
   label: {
     start: ({ customer }) => `Cobrarle a ${customer} lo de la libreta`,
   },

@@ -1,4 +1,4 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import type { Currency } from "../../../../core/money/money";
 import type { Database } from "../../../../core/storage/database";
 import { ChargeConflictError, type ChargeRepository } from "../../application/ports";
@@ -56,6 +56,18 @@ export class PostgresChargeRepository implements ChargeRepository {
     return rows.map(fromRow);
   }
 
+  async discard(charge: Charge): Promise<void> {
+    await this.db
+      .delete(charges)
+      .where(
+        and(
+          eq(charges.id, charge.id),
+          eq(charges.status, "pending"),
+          sql`${charges.idempotencyKey} is not distinct from ${charge.idempotencyKey ?? null}`,
+        ),
+      );
+  }
+
   async save(charge: Charge): Promise<void> {
     const { id, ...changes } = toRow(charge);
     let saved: readonly unknown[];
@@ -68,7 +80,10 @@ export class PostgresChargeRepository implements ChargeRepository {
           set: changes,
           // Only the same charge moves on (e.g. pending to paid). Another request that picked the
           // same reference at the same time created a different charge: it must not overwrite.
-          setWhere: sql`${charges.idempotencyKey} is not distinct from excluded.idempotency_key and ${charges.createdAt} = excluded.created_at`,
+          // And only a pending charge moves: once paid, the payment that paid it stays, even if
+          // another reconciliation that read the charge earlier tries to pay it with a second transfer.
+          // The check runs in the same statement as the write, so it holds however runs interleave.
+          setWhere: sql`${charges.idempotencyKey} is not distinct from excluded.idempotency_key and ${charges.createdAt} = excluded.created_at and (${charges.status} = 'pending' or ${charges.paidBy} is not distinct from excluded.paid_by)`,
         })
         .returning({ id: charges.id });
     } catch (error) {

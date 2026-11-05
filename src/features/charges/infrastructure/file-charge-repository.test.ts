@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readJsonFile, writeJsonFile } from "../../../core/storage/json-file";
 import { applyPayment, type Charge, newestFirst } from "../domain/charge";
+import { chargeDiscardContract } from "../testing/charge-repository-discard-contract";
 import { aCharge, aTransfer, UNIT } from "../testing/fixtures";
 import { FileChargeRepository, UNKNOWN_CREATION_TIME } from "./file-charge-repository";
 
@@ -123,5 +124,18 @@ describe("FileChargeRepository", () => {
       await expect(repository.save(aCharge())).rejects.toThrow(/not a list/);
       expect(await readJsonFile<unknown>(file, undefined)).toEqual({ not: "a list" });
     });
+  });
+});
+
+describe("FileChargeRepository", () => {
+  let dir: string;
+
+  afterEach(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  chargeDiscardContract("FileChargeRepository", async () => {
+    dir = await mkdtemp(join(tmpdir(), "charges-"));
+    return new FileChargeRepository(join(dir, "charges.json"));
   });
 });

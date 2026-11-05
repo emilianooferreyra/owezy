@@ -68,15 +68,19 @@ export const simulatedTransfers = pgTable("simulated_transfers", {
 });
 
 /** The shop's ledger ("libreta"): what customers took and still owe, in the order written down. */
-export const ledgerEntries = pgTable("ledger_entries", {
-  seq: bigserial({ mode: "number" }).primaryKey(),
-  id: text().notNull().unique(),
-  customer: text().notNull(),
-  description: text().notNull(),
-  amount: baseUnits(),
-  currency: text().notNull(),
-  recordedAt: instant().notNull(),
-  idempotencyKey: text().unique(),
-  /** The charge that includes the entry, once the owner charged it. */
-  chargeId: text(),
-});
+export const ledgerEntries = pgTable(
+  "ledger_entries",
+  {
+    seq: bigserial({ mode: "number" }).primaryKey(),
+    id: text().notNull().unique(),
+    customer: text().notNull(),
+    description: text().notNull(),
+    amount: baseUnits(),
+    currency: text().notNull(),
+    recordedAt: instant().notNull(),
+    idempotencyKey: text().unique(),
+    /** The charge that includes the entry, once the owner charged it. */
+    chargeId: text().references(() => charges.id),
+  },
+  (table) => [check("ledger_entries_amount_positive", sql`${table.amount} > 0`)],
+);

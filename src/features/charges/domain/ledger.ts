@@ -1,4 +1,4 @@
-import { type Money, money } from "../../../core/money/money";
+import { exceedsMaximum, MAX_WHOLE_UNITS, type Money, money } from "../../../core/money/money";
 import type { Charge } from "./charge";
 
 /**
@@ -33,7 +33,11 @@ export type CustomerBalance = Readonly<{
 
 export class InvalidLedgerEntryError extends Error {
   constructor(field: "amount" | "customer" | "description") {
-    super(field === "amount" ? "A ledger entry amount must be greater than zero" : `A ledger entry needs a ${field}`);
+    super(
+      field === "amount"
+        ? `A ledger entry amount must be greater than zero and at most ${MAX_WHOLE_UNITS} whole units`
+        : `A ledger entry needs a ${field}`,
+    );
     this.name = "InvalidLedgerEntryError";
   }
 }
@@ -46,7 +50,7 @@ export function createLedgerEntry(input: {
   recordedAt: string;
   idempotencyKey?: string;
 }): LedgerEntry {
-  if (input.amount.amount <= 0n) {
+  if (input.amount.amount <= 0n || exceedsMaximum(input.amount)) {
     throw new InvalidLedgerEntryError("amount");
   }
   const customer = input.customer.trim().replace(/\s+/g, " ");

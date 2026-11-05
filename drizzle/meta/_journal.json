@@ -15,6 +15,13 @@
       "when": 1793732377177,
       "tag": "0001_great_terrax",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793838287808,
+      "tag": "0002_lowly_lord_tyger",
+      "breakpoints": true
     }
   ]
 }

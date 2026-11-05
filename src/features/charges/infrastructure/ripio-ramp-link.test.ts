@@ -28,7 +28,8 @@ describe("ripioRampLinkBuilder", () => {
 
   it("refuses to build a link for a currency the ramp is not configured for", () => {
     const buildLink = ripioRampLinkBuilder({ recipient: RECIPIENT });
-    const charge = aCharge({ id: "C-0123", amount: money(500n * UNIT, "wXYZ" as Currency) });
+    // Forged after creation: the domain itself refuses a currency the app does not know.
+    const charge = { ...aCharge({ id: "C-0123" }), amount: money(500n * UNIT, "wXYZ" as Currency) };
 
     expect(() => buildLink(charge)).toThrow(UnsupportedRampCurrencyError);
   });

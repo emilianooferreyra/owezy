@@ -37,6 +37,7 @@ describe("createLedgerEntry", () => {
 
   it.each([
     ["a zero amount", { amount: wars(0n) }, /amount/],
+    ["more than a thousand million whole units", { amount: wars(1_000_000_001n) }, /amount/],
     ["no customer", { customer: "  " }, /customer/],
     ["no description", { description: "" }, /description/],
   ] as const)("refuses an entry with %s", (_, overrides, message) => {

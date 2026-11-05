@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Database } from "../../../../core/storage/database";
 import { ChargeConflictError } from "../../application/ports";
 import { applyPayment } from "../../domain/charge";
+import { chargeDiscardContract } from "../../testing/charge-repository-discard-contract";
 import { aCharge, aTransfer, UNIT, wars } from "../../testing/fixtures";
 import { PostgresChargeRepository } from "./postgres-charge-repository";
 import { PGLITE_STARTUP_MS, testDatabase } from "./test-database";
@@ -89,4 +90,39 @@ describe("PostgresChargeRepository", () => {
 
     await expect(repository.save(second)).rejects.toBeInstanceOf(ChargeConflictError);
   });
+
+  it("keeps the first payment when a reconciliation that read the charge before it was paid saves another transfer", async () => {
+    const repository = new PostgresChargeRepository(db);
+    const pending = aCharge({ id: "C-0001", amount: wars(1_000n) });
+    await repository.save(pending);
+    const first = applyPayment(pending, aTransfer({ id: "0xfirst:0", amount: wars(1_000n) }));
+    await repository.save(first);
+
+    // Another run read `pending` before the first one saved, and found a second, duplicate payment.
+    const stale = applyPayment(pending, aTransfer({ id: "0xsecond:0", amount: wars(1_000n) }));
+
+    await expect(repository.save(stale)).rejects.toBeInstanceOf(ChargeConflictError);
+    expect(await repository.findById("C-0001")).toEqual(first);
+  });
+
+  it("accepts saving a paid charge again unchanged, as a repeated reconciliation does", async () => {
+    const repository = new PostgresChargeRepository(db);
+    const paid = applyPayment(aCharge({ id: "C-0001", amount: wars(1_000n) }), aTransfer({ amount: wars(1_000n) }));
+    await repository.save(paid);
+
+    await repository.save(paid);
+
+    expect(await repository.findById("C-0001")).toEqual(paid);
+  });
+
+  it("never turns a paid charge back into a pending one", async () => {
+    const repository = new PostgresChargeRepository(db);
+    const pending = aCharge({ id: "C-0001", amount: wars(1_000n) });
+    await repository.save(applyPayment(pending, aTransfer({ amount: wars(1_000n) })));
+
+    await expect(repository.save(pending)).rejects.toBeInstanceOf(ChargeConflictError);
+    expect(await repository.findById("C-0001")).toMatchObject({ status: "paid" });
+  });
 });
+
+chargeDiscardContract("PostgresChargeRepository", async () => new PostgresChargeRepository(await testDatabase()));

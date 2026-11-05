@@ -197,6 +197,14 @@ export const ptBR = {
       BR: "Ex.: Anota que o João levou 2 bolos por R$ 300",
     },
     send: "Enviar",
+    approval: {
+      label: "Confirmação",
+      create_charge: "Crio a cobrança de {amount} para {customer} por {description}?",
+      add_to_ledger: "Anoto que {customer} levou {description} por {amount}?",
+      charge_from_ledger: "Mando para {customer} o link de tudo o que está sem cobrar na caderneta?",
+      approve: "Confirmar",
+      cancel: "Cancelar",
+    },
   },
   ledger: {
     title: "Caderneta",

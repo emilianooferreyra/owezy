@@ -5,9 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // The chat without a running agent: what matters here is what the owner sees and what gets sent.
 const agent = vi.hoisted(() => ({
   status: "ready" as string,
-  data: { messages: [] as unknown[] },
+  data: { messages: [] as unknown[], inputs: [] as unknown[] },
   error: undefined,
   send: (() => Promise.resolve()) as (message: string) => Promise<void>,
+  respond: (() => Promise.resolve()) as (responses: unknown[]) => Promise<void>,
   /** What the demo passed to useEveAgent, to check what every turn carries. */
   options: undefined as { prepareSend?: (input: { message: string }) => unknown } | undefined,
 }));
@@ -16,6 +17,8 @@ vi.mock("eve/react", () => ({
     agent.options = options;
     return agent;
   },
+  // The real helper reads eve's projection of open requests; the double keeps them in `data.inputs`.
+  openConversationInputs: (data: { inputs: unknown[] }) => data.inputs,
 }));
 import type { ReactNode } from "react";
 import { I18nProvider } from "@/core/i18n/i18n-provider";
@@ -58,6 +61,8 @@ beforeEach(() => {
   agent.status = "ready";
   agent.send = vi.fn(() => Promise.resolve());
   agent.data.messages = [];
+  agent.data.inputs = [];
+  agent.respond = vi.fn(() => Promise.resolve());
   ledgerStatus = 200;
   activity = [];
   try {
@@ -227,6 +232,40 @@ describe("demo chat", () => {
     expect(cards).toHaveLength(1);
     expect(within(cards[0] as HTMLElement).getAllByText("$0").length).toBeGreaterThan(0);
     expect(within(cards[0] as HTMLElement).queryByText("$57.000")).toBeNull();
+  });
+
+  it("asks the owner before the agent writes, and sends their answer back to the paused call", async () => {
+    agent.status = "streaming";
+    agent.data.inputs = [
+      {
+        status: "open",
+        request: {
+          kind: "tool-approval",
+          requestId: "request-1",
+          prompt: "Approve create_charge?",
+          options: [
+            { id: "approve", label: "Approve" },
+            { id: "cancel", label: "Cancel" },
+          ],
+          action: {
+            kind: "tool-call",
+            callId: "call-1",
+            toolName: "create_charge",
+            input: { customer: "Juan Pérez", description: "torta", amount: "30000", currency: "wARS" },
+          },
+        },
+      },
+    ];
+    render(<DemoScreen />);
+
+    const card = screen.getByRole("group", { name: "Confirmación" });
+    expect(within(card).getByText("¿Creo el cobro de $30.000 a Juan Pérez por torta?")).toBeTruthy();
+    // The turn is waiting on the owner, not thinking.
+    expect(screen.queryByText("Pensando…")).toBeNull();
+
+    fireEvent.click(within(card).getByRole("button", { name: "Confirmar" }));
+
+    expect(agent.respond).toHaveBeenCalledWith([{ requestId: "request-1", optionId: "approve" }]);
   });
 
   it("shows the agent's **bold** as bold, not as asterisks", () => {

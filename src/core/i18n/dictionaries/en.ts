@@ -197,6 +197,14 @@ export const en = {
       BR: "E.g. Write down that João took 2 cakes for R$ 300",
     },
     send: "Send",
+    approval: {
+      label: "Confirmation",
+      create_charge: "Create a {amount} charge to {customer} for {description}?",
+      add_to_ledger: "Write down that {customer} took {description} for {amount}?",
+      charge_from_ledger: "Send {customer} the link for everything unbilled in the ledger?",
+      approve: "Confirm",
+      cancel: "Cancel",
+    },
   },
   ledger: {
     title: "Ledger",
