@@ -190,6 +190,7 @@ export const en = {
     subtitle: "Your collections assistant",
     home: "Home",
     toolError: "Could not complete: {error}",
+    dailyLimit: "The demo reached today's limit. Please try again tomorrow.",
     thinking: "Thinking…",
     message: "Message",
     placeholder: {
