@@ -314,6 +314,24 @@ describe("demo chat", () => {
     expect(screen.getAllByText(confirmation)).toHaveLength(1);
   });
 
+  it("still shows a corrected amount right after the text it corrects", () => {
+    agent.data.messages = [
+      {
+        id: "turn_0:assistant",
+        role: "assistant",
+        parts: [
+          { type: "step-start" },
+          { type: "text", text: "El importe es R$1150." },
+          { type: "text", text: "El importe es R$11,50." },
+        ],
+      },
+    ];
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByText("El importe es R$1150.")).toBeTruthy();
+    expect(within(chat()).getByText("El importe es R$11,50.")).toBeTruthy();
+  });
+
   it("answers with the charge card alone when the turn ends after the write, without a stuck Pensando…", () => {
     // create_charge ends the turn once it succeeds: eve sends no final text after the card.
     agent.status = "ready";

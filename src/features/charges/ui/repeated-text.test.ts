@@ -45,6 +45,15 @@ describe("repeatedTextParts", () => {
     expect([...repeatedTextParts([text("Hola."), text("Listo."), text("Hola.")])]).toEqual([]);
   });
 
+  it.each([
+    ["a decimal comma", "El importe es R$1150.", "El importe es R$11,50."],
+    ["a decimal point", "The amount is $1150.", "The amount is $11.50."],
+    ["a dot that is not a thousands separator", "El importe es $1150.", "El importe es $1.150,5."],
+    ["a comma read as thousands in one text and decimals in the other", "El importe es $11.500.", "El importe es $11,500."],
+  ])("keeps a corrected amount that differs only by %s", (_case, first, second) => {
+    expect([...repeatedTextParts([text(first), text(second)])]).toEqual([]);
+  });
+
   it("keeps texts that differ in their digits", () => {
     expect([...repeatedTextParts([text("El importe es $11.500."), text("El importe es $11.501.")])]).toEqual([]);
   });
