@@ -7,7 +7,11 @@ import { SimulatedTransferSource } from "../../src/features/charges/infrastructu
 import { parseChargeView } from "../../src/features/charges/ui/charge-card-model";
 
 // The tools run against an in-memory shop instead of the configured one.
-const shop = vi.hoisted(() => ({ feature: undefined as unknown as ChargesFeature }));
+const shop = vi.hoisted(() => ({
+  feature: undefined as unknown as ChargesFeature,
+  charges: undefined as unknown as InMemoryChargeRepository,
+  ledger: undefined as unknown as InMemoryLedgerRepository,
+}));
 vi.mock("../../src/features/charges", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../src/features/charges")>()),
   chargesRuntime: () => ({ feature: shop.feature }),
@@ -21,9 +25,11 @@ import shareCharge from "./share_charge";
 const NOW = new Date("2026-11-03T15:00:00.000Z");
 
 beforeEach(() => {
+  shop.charges = new InMemoryChargeRepository();
+  shop.ledger = new InMemoryLedgerRepository();
   shop.feature = createChargesFeature({
-    charges: new InMemoryChargeRepository(),
-    ledger: new InMemoryLedgerRepository(),
+    charges: shop.charges,
+    ledger: shop.ledger,
     buildPaymentLink: (charge) => `https://pay.test/${charge.id}`,
     now: () => NOW,
     simulator: new SimulatedTransferSource({ now: () => new Date(NOW.getTime() + 60_000) }),
@@ -83,6 +89,9 @@ describe("create_charge ends the turn", () => {
 
     expect(output).toMatchObject({ amount: "850.01", currency: "wBRL", amountAdjusted: true });
     expect(endsTurn).toBe(false);
+    // The stored charge holds the adjusted amount the owner is told about.
+    const stored = await shop.feature.getCharge((output as { id: string }).id);
+    expect(stored).toMatchObject({ amount: "850.01", currency: "wBRL" });
   });
 });
 
@@ -130,6 +139,10 @@ describe("charge_from_ledger ends the turn", () => {
 
     expect(output).toMatchObject({ amount: "30000.01", amountAdjusted: true });
     expect(endsTurn).toBe(false);
+    // The stored charge holds the adjusted amount, and the ledger entry points to that charge.
+    const { id } = output as { id: string };
+    expect(await shop.feature.getCharge(id)).toMatchObject({ amount: "30000.01" });
+    expect(await shop.ledger.list()).toEqual([expect.objectContaining({ customer: "Juan Pérez", chargeId: id })]);
   });
 });
 

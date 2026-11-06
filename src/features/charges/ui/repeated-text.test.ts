@@ -36,6 +36,7 @@ describe("repeatedTextParts", () => {
     ["emails that differ by a dot", "Le escribo a ana.perez@mail.com.", "Le escribo a anaperez@mail.com."],
     ["references that differ by a hyphen", "La referencia es C-0006.", "La referencia es C0006."],
     ["the same words with other punctuation", "Listo, quedó creado.", "Listo: quedó creado"],
+    ["a single asterisk that is not bold", "El pedido tiene 2*3 unidades.", "El pedido tiene 23 unidades."],
   ])("keeps %s: punctuation can change the meaning", (_case, first, second) => {
     expect([...repeatedTextParts([text(first), text(second)])]).toEqual([]);
   });

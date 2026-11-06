@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 // **text** with no space just inside the asterisks, as Markdown requires: "a ** b **" stays as is.
-const BOLD = /\*\*(\S(?:[^*\n]*\S)?)\*\*/g;
+export const BOLD = /\*\*(\S(?:[^*\n]*\S)?)\*\*/g;
 
 /**
  * Shows a model's reply with its **bold** spans as bold. The model writes Markdown, but a chat

@@ -1,7 +1,9 @@
 import type { EveMessagePart } from "eve/react";
+import { BOLD } from "../../../core/ui/inline-markdown";
 
 /**
- * A text without the differences that never change its meaning: bold markers, a thousands
+ * A text without the differences that never change its meaning: the bold markers the chat
+ * renders (the same rule as InlineMarkdown, so "2*3" keeps its asterisk), a thousands
  * separator written as a dot or a space ("$11.500" and "$11 500" are one amount), and runs of
  * spaces. Every other mark counts: "¿Ya pagó Juan?" is not "Ya pagó Juan.", and "R$11,50" is not
  * "R$1150". This is only a safety net, since the write tools end the turn, so when in doubt both
@@ -9,7 +11,7 @@ import type { EveMessagePart } from "eve/react";
  */
 const normalized = (text: string) =>
   text
-    .replace(/\*+/g, "")
+    .replace(BOLD, "$1")
     .replace(/(?<=\d)[.\s  ](?=\d{3}(?!\d))/gu, "")
     .replace(/\s+/gu, " ")
     .trim();

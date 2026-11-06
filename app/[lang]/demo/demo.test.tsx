@@ -332,6 +332,24 @@ describe("demo chat", () => {
     expect(within(chat()).getByText("El importe es R$11,50.")).toBeTruthy();
   });
 
+  it("still shows a quantity that differs only by a single asterisk, which is not bold", () => {
+    agent.data.messages = [
+      {
+        id: "turn_0:assistant",
+        role: "assistant",
+        parts: [
+          { type: "step-start" },
+          { type: "text", text: "El pedido tiene 2*3 unidades." },
+          { type: "text", text: "El pedido tiene 23 unidades." },
+        ],
+      },
+    ];
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByText("El pedido tiene 2*3 unidades.")).toBeTruthy();
+    expect(within(chat()).getByText("El pedido tiene 23 unidades.")).toBeTruthy();
+  });
+
   it("answers with the charge card alone when the turn ends after the write, without a stuck Pensando…", () => {
     // create_charge ends the turn once it succeeds: eve sends no final text after the card.
     agent.status = "ready";
