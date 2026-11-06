@@ -1,16 +1,17 @@
 import type { EveMessagePart } from "eve/react";
 
 /**
- * A text reduced to what can change its meaning. A thousands separator written as a dot or a space
- * goes ("$11.500" and "$11 500" are one amount). Punctuation and spacing around words collapse
- * to one space, so word breaks still count. A separator between two digits that is not a
- * thousands group stays, because "R$11,50" and "R$1150" are different amounts: hiding a corrected
- * amount is worse than showing a repeat.
+ * A text without the differences that never change its meaning: bold markers, a thousands
+ * separator written as a dot or a space ("$11.500" and "$11 500" are one amount), and runs of
+ * spaces. Every other mark counts: "¿Ya pagó Juan?" is not "Ya pagó Juan.", and "R$11,50" is not
+ * "R$1150". This is only a safety net, since the write tools end the turn, so when in doubt both
+ * texts show: hiding a different message is worse than showing a repeat.
  */
 const normalized = (text: string) =>
   text
+    .replace(/\*+/g, "")
     .replace(/(?<=\d)[.\s  ](?=\d{3}(?!\d))/gu, "")
-    .replace(/(?<!\d)[\s\p{P}]+|[\s\p{P}]+(?!\d)/gu, " ")
+    .replace(/\s+/gu, " ")
     .trim();
 
 const isTool = (part: EveMessagePart) => part.type === "dynamic-tool" || part.type.startsWith("tool-");

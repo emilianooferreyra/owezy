@@ -18,17 +18,26 @@ describe("repeatedTextParts", () => {
     expect([...repeatedTextParts([text("Listo, quedó creado."), text("  Listo, quedó  creado.\n")])]).toEqual([1]);
   });
 
-  it("treats the same confirmation written with other punctuation or spacing as the same message", () => {
-    // From a production trace: one create_charge call, then the confirmation twice.
+  it("treats the same confirmation with another thousands separator or bold as the same message", () => {
+    // The two texts the demo showed for C-0006: one create_charge call, then the confirmation twice.
     const parts = [
       tool,
       step,
-      text("Listo, generé el link de pago de Mario Casese, la referencia C-0006 y el importe de $11.500."),
+      text("Listo, generé el link de pago para Mario Casese. La referencia es **C-0006** y el importe es $11.500."),
       step,
-      text("Listo: generé el link de pago de Mario Casese — la referencia **C-0006** y el importe de $11 500"),
+      text("Listo, generé el link de pago para Mario Casese. La referencia es C-0006 y el importe es $11 500."),
     ];
 
     expect([...repeatedTextParts(parts)]).toEqual([4]);
+  });
+
+  it.each([
+    ["a question and a statement", "¿Ya pagó Juan?", "Ya pagó Juan."],
+    ["emails that differ by a dot", "Le escribo a ana.perez@mail.com.", "Le escribo a anaperez@mail.com."],
+    ["references that differ by a hyphen", "La referencia es C-0006.", "La referencia es C0006."],
+    ["the same words with other punctuation", "Listo, quedó creado.", "Listo: quedó creado"],
+  ])("keeps %s: punctuation can change the meaning", (_case, first, second) => {
+    expect([...repeatedTextParts([text(first), text(second)])]).toEqual([]);
   });
 
   it("keeps different texts, and texts that only repeat across separate answers", () => {
