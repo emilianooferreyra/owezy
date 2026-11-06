@@ -9,7 +9,7 @@ import { DAILY_BUDGET_EXHAUSTED } from "./daily-budget-exhausted";
 const MODEL_PATH = /\/session(\/[^/]+(\/compact)?)?$/;
 
 function spendsTokens(request: Request): boolean {
-  return request.method === "POST" && MODEL_PATH.test(new URL(request.url).pathname.replace(/\/+$/, ""));
+  return request.method === "POST" && MODEL_PATH.test(new URL(request.url).pathname.replace(/\/$/, ""));
 }
 
 /**

@@ -46,6 +46,11 @@ describe("dailyBudgetGate", () => {
   it.each([
     ["reading a session's stream", "GET", "/eve/v1/session/ses_123/stream"],
     ["cancelling a turn", "POST", "/eve/v1/session/ses_123/cancel"],
+    ["reading a stream with a trailing slash", "GET", "/eve/v1/session/ses_123/stream/"],
+    ["cancelling with a trailing slash", "POST", "/eve/v1/session/ses_123/cancel/"],
+    ["clearing a session with a trailing slash", "POST", "/eve/v1/session/ses_123/clear/"],
+    ["resetting a session with a trailing slash", "POST", "/eve/v1/session/ses_123/reset/"],
+    ["reading the compact path without POST", "GET", "/eve/v1/session/ses_123/compact"],
   ])("still allows %s after the budget is spent, since it calls no model", async (_name, method, path) => {
     const budget = await spentBudget();
 
