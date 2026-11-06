@@ -189,6 +189,8 @@ describe("whatsAppNumber", () => {
     ["+54 9 11 2345-6789", "5491123456789"],
     ["54 11 2345 6789", "5491123456789"],
     ["(351) 456-7890", "5493514567890"],
+    // Typed as written locally: trunk 0 plus area code 11, without the 15.
+    ["01131909679", "5491131909679"],
   ])("turns the Argentine mobile %s into WhatsApp's international format", (input, expected) => {
     expect(whatsAppNumber(input)).toBe(expected);
   });

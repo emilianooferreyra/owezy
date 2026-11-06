@@ -1,21 +1,42 @@
 import type { EveMessagePart } from "eve/react";
-
-const normalized = (text: string) => text.trim().replace(/\s+/g, " ");
+import { BOLD } from "../../../core/ui/inline-markdown";
 
 /**
- * Indexes of text parts that repeat an earlier text of the same answer. After the owner approves a
- * tool call, eve runs one more model step, and the model sometimes says its confirmation again
- * word for word: the chat shows it once.
+ * A text without the differences that never change its meaning: the bold markers the chat
+ * renders (the same rule as InlineMarkdown, so "2*3" keeps its asterisk), a thousands
+ * separator written as a dot or a space ("$11.500" and "$11 500" are one amount), and runs of
+ * spaces. Every other mark counts: "¿Ya pagó Juan?" is not "Ya pagó Juan.", and "R$11,50" is not
+ * "R$1150". This is only a safety net, since the write tools end the turn, so when in doubt both
+ * texts show: hiding a different message is worse than showing a repeat.
+ */
+const normalized = (text: string) =>
+  text
+    .replace(BOLD, "$1")
+    .replace(/(?<=\d)[.\s  ](?=\d{3}(?!\d))/gu, "")
+    .replace(/\s+/gu, " ")
+    .trim();
+
+const isTool = (part: EveMessagePart) => part.type === "dynamic-tool" || part.type.startsWith("tool-");
+
+/**
+ * Indexes of text parts that repeat the text right before them in the same answer, with no tool
+ * call in between. After the owner approves a tool call, eve may run one more model step, and the
+ * model sometimes says its confirmation again, even with other spacing or punctuation: the chat
+ * shows it once. A text that repeats after a tool ran is a new answer, so it still shows.
  */
 export function repeatedTextParts(parts: readonly EveMessagePart[]): ReadonlySet<number> {
-  const seen = new Set<string>();
   const repeated = new Set<number>();
+  let previous: string | undefined;
   parts.forEach((part, index) => {
+    if (isTool(part)) {
+      previous = undefined;
+      return;
+    }
     if (part.type !== "text") return;
     const key = normalized(part.text);
     if (key === "") return;
-    if (seen.has(key)) repeated.add(index);
-    seen.add(key);
+    if (key === previous) repeated.add(index);
+    previous = key;
   });
   return repeated;
 }

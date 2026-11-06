@@ -7,7 +7,9 @@ export default defineTool({
   description:
     "Charge a customer for everything in the ledger that has no payment link yet: one charge for the " +
     'total, with its link. Use it for "cobrale a Juan lo que debe". The entries are marked so they are ' +
-    "never charged twice. Pass the customer's name as the ledger has it.",
+    "never charged twice. Pass the customer's name as the ledger has it. Once it charges, the app " +
+    "shows the charge card and your turn ends, unless the amount has cents: then you can explain them. " +
+    "When it answers charged: false, nothing was charged and you tell the owner.",
   inputSchema: z.object({
     customer: z.string().trim().min(1).max(80).describe('Who to charge, e.g. "Juan Pérez".'),
     currency: shopCurrency,
@@ -33,4 +35,8 @@ export default defineTool({
       throw error;
     }
   },
+  // The charge card is the confirmation: eve ends the turn instead of calling the model again,
+  // which could write it twice. Not when nothing was charged (the model tells the owner or asks
+  // which customer), nor when cents were added to keep the amount distinct, which the model explains.
+  endsTurn: (output) => !("charged" in output) && !output.amountAdjusted,
 });

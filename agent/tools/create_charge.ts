@@ -1,13 +1,15 @@
 import { defineTool } from "eve/tools";
 import { always } from "eve/tools/approval";
 import { z } from "zod";
-import { formatMoney } from "../../src/core/money/money";
+import { DEFAULT_CURRENCY, formatMoney, fromDecimalString, isCurrency } from "../../src/core/money/money";
 import { chargesRuntime, shopCurrency } from "../../src/features/charges";
 
 export default defineTool({
   description:
     "Create a charge in the shop's currency for a customer and get the link they open to pay. " +
-    "The charge gets its own reference (e.g. C-0007): never ask the owner for one.",
+    "The charge gets its own reference (e.g. C-0007): never ask the owner for one. " +
+    "Once it is created, the app shows its card and your turn ends, unless amountAdjusted is true: " +
+    "then explain the extra cents in one short sentence.",
   inputSchema: z.object({
     customer: z.string().trim().min(1).max(80).describe('Who pays, e.g. "Juan Pérez".'),
     description: z
@@ -36,6 +38,16 @@ export default defineTool({
     // a retry returns the same charge instead of a duplicate.
     const requestId = `${ctx.session.id}:${ctx.session.turn.id}`;
     // Built on first call, not at import time, so a bad configuration fails the call, not the build.
-    return chargesRuntime().feature.createCharge({ ...input, requestId });
+    const charge = await chargesRuntime().feature.createCharge({ ...input, requestId });
+    // Compared in the currency the charge was created in, so both amounts use its precision.
+    const currency = isCurrency(charge.currency) ? charge.currency : DEFAULT_CURRENCY;
+    // Another pending charge already had this amount, so the charge got extra cents to tell the
+    // two payments apart: the owner did not ask for them, and the model explains them.
+    const amountAdjusted =
+      fromDecimalString(charge.amount, currency).amount !== fromDecimalString(input.amount, currency).amount;
+    return { ...charge, amountAdjusted };
   },
+  // The charge card is the confirmation: eve ends the turn instead of calling the model again,
+  // which could write it twice. Extra cents still need the model's one-line explanation.
+  endsTurn: (output) => !output.amountAdjusted,
 });

@@ -8,7 +8,8 @@ export default defineTool({
   description:
     "Write down in the ledger (libreta) that a customer took something and still owes it, e.g. " +
     '"anotá que Juan llevó 2 tortas por $30.000". It does not send a payment link: use ' +
-    "charge_from_ledger for that.",
+    "charge_from_ledger for that. Once it is written, the app shows it as a card and your turn ends. " +
+    "When it answers written: false, nothing was written: ask which customer the owner means.",
   inputSchema: z.object({
     customer: z.string().trim().min(1).max(80).describe('Who took it, e.g. "Juan Pérez".'),
     description: z.string().trim().min(1).max(120).describe('What they took, e.g. "2 tortas".'),
@@ -40,4 +41,7 @@ export default defineTool({
       throw error;
     }
   },
+  // The entry's card is the confirmation: eve ends the turn instead of calling the model again,
+  // which could write it twice. Not when nothing was written: the model asks which customer.
+  endsTurn: (output) => "entry" in output,
 });
