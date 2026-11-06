@@ -75,6 +75,15 @@ describe("create_charge ends the turn", () => {
     expect(output).toMatchObject({ id: "C-0002", amount: "11500.01", amountAdjusted: true });
     expect(endsTurn).toBe(false);
   });
+
+  it("not when it added cents to a Brazilian shop's charge: compared in the charge's own currency", async () => {
+    await run(createCharge, { ...charge("Bia Souza", "850"), currency: "wBRL" }, "t1");
+
+    const { output, endsTurn } = await run(createCharge, { ...charge("Caio Lima", "850"), currency: "wBRL" }, "t2");
+
+    expect(output).toMatchObject({ amount: "850.01", currency: "wBRL", amountAdjusted: true });
+    expect(endsTurn).toBe(false);
+  });
 });
 
 describe("charge_from_ledger ends the turn", () => {
@@ -119,7 +128,7 @@ describe("charge_from_ledger ends the turn", () => {
 
     const { output, endsTurn } = await run(chargeFromLedger, { customer: "Juan", currency: "wARS" }, "t3");
 
-    expect(output).toMatchObject({ amount: "30000.01" });
+    expect(output).toMatchObject({ amount: "30000.01", amountAdjusted: true });
     expect(endsTurn).toBe(false);
   });
 });
