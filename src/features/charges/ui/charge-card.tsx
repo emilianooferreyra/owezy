@@ -182,6 +182,8 @@ export function ChargeCard({ charge: initial }: { charge: ChargeView }) {
               charge={charge}
               onCancel={() => setAskingContact(false)}
               onSend={(url) => {
+                // Within the owner's tap, so popup blockers let the chat open.
+                window.open(url, "_blank", "noopener,noreferrer");
                 setWhatsAppUrl(url);
                 setAskingContact(false);
                 // The demo's customer phone gets it too, so the flow goes on without a real number.
@@ -216,6 +218,7 @@ export function ChargeCard({ charge: initial }: { charge: ChargeView }) {
                   {format(sent ? copy.sentTo : copy.sendTo, { name: firstName })}
                 </Button>
               )}
+              {/* The chat opened on send: this only opens it again. */}
               {sent && whatsAppUrl && (
                 <Button asChild variant="outline">
                   <a href={whatsAppUrl} target="_blank" rel="noreferrer">

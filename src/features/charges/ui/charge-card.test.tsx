@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/core/i18n/i18n-provider";
 import type { ChargeView } from "../charges-feature";
 import { ChargeCard } from "./charge-card";
@@ -32,6 +32,11 @@ function Chat({ views }: { views: readonly ChargeView[] }) {
   useDemo();
   return views.map((view, index) => <ChargeCard key={index} charge={{ ...view }} />);
 }
+
+// jsdom has no window.open: sending opens WhatsApp, which the tests only observe.
+beforeEach(() => {
+  vi.spyOn(window, "open").mockReturnValue(null);
+});
 
 afterEach(() => {
   cleanup();
@@ -173,6 +178,42 @@ describe("ChargeCard", () => {
       const whatsApp = screen.getByRole("link", { name: /Abrir en WhatsApp/ });
       expect(whatsApp.getAttribute("href")).toMatch(/^https:\/\/wa\.me\/5491123456789\?text=/);
       expect(whatsApp.getAttribute("target")).toBe("_blank");
+    });
+
+    it("opens WhatsApp on the typed number in the same tap, then shows the card as sent", () => {
+      const open = vi.spyOn(window, "open").mockReturnValue(null);
+      render(
+        <DemoProvider>
+          <ChargeCard charge={{ ...CHARGE, id: "C-0006", customer: "Mario Casese", amount: "11500" }} />
+          <PhoneProbe />
+        </DemoProvider>,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Enviar a Mario" }));
+      const form = screen.getByRole("form", { name: "Contacto de Mario" });
+      fireEvent.change(within(form).getByLabelText("Celular"), { target: { value: "01131909679" } });
+      fireEvent.click(within(form).getByRole("button", { name: /Enviar por WhatsApp/ }));
+
+      expect(open).toHaveBeenCalledTimes(1);
+      const [url, target, features] = open.mock.calls[0] ?? [];
+      expect(String(url)).toMatch(/^https:\/\/wa\.me\/5491131909679\?text=/);
+      expect(decodeURIComponent(String(url))).toContain("C-0006");
+      expect(target).toBe("_blank");
+      expect(features).toBe("noopener,noreferrer");
+      expect(screen.getByRole("button", { name: /Enviado a Mario/ })).toBeTruthy();
+      expect(screen.queryByRole("form", { name: "Contacto de Mario" })).toBeNull();
+      expect(screen.getByLabelText("Bandeja").textContent).toBe("2 docenas de medialunas");
+      // Still there to open the chat again, with the same link.
+      expect(screen.getByRole("link", { name: /Abrir en WhatsApp/ }).getAttribute("href")).toBe(String(url));
+    });
+
+    it("does not open WhatsApp while the mobile number is invalid", () => {
+      const open = vi.spyOn(window, "open").mockReturnValue(null);
+      const form = renderCard();
+
+      fireEvent.change(within(form).getByLabelText("Celular"), { target: { value: "2345-6789" } });
+      fireEvent.click(within(form).getByRole("button", { name: /Enviar por WhatsApp/ }));
+
+      expect(open).not.toHaveBeenCalled();
     });
   });
 
