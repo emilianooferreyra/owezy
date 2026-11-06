@@ -91,6 +91,7 @@ Create `.env` (it is git-ignored). Not `.env.local`: `eve link` and `vercel env 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `GROQ_API_KEY` | yes | Groq API key for the model |
+| `DAILY_TOKEN_BUDGET` | no | Model tokens the public chat may spend per UTC day, shared by every visitor. Once spent, new messages get `403 daily_budget_exhausted` until the next day. Default `180000`, under Groq's free tier of 200K tokens a day. Usage is kept with the charges (`DATABASE_URL` or `DATA_DIR`) |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | for the wallet | WalletConnect project id from [Reown](https://dashboard.reown.com), so mobile wallets like Valora can connect. Not a secret: it ships to the browser and is restricted by the domains allowed in the dashboard |
 | `PAYMENTS_MODE` | no | `simulated` (default) or `ripio` |
 | `BUSINESS_ADDRESS` | with `ripio` | Celo address that receives wARS |
