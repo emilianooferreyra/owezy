@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit reviews every non-draft pull request to main. AGENTS.md and CLAUDE.md are read as code
+# guidelines by default; the instructions below add what is specific to this repository.
+language: en-US
+
+chat:
+  auto_reply: true
+
+reviews:
+  profile: assertive
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+  path_filters:
+    - "!**/node_modules/**"
+    - "!pnpm-lock.yaml"
+    - "!drizzle/meta/**"
+    - "!.eve/**"
+    - "!.next/**"
+  path_instructions:
+    - path: "**/*.{ts,tsx}"
+      instructions: |
+        - Money is always a bigint in token base units (wARS and wBRL have 18 decimals). Flag any
+          amount held in a JavaScript number, parsed with parseFloat, or rounded.
+        - Flag secrets read or logged outside server code: GROQ_API_KEY, DATABASE_URL,
+          CRON_SECRET, AGENT_PRIVATE_KEY. Only scripts/ may read AGENT_PRIVATE_KEY.
+        - Every behavior change needs a test through the public interface that asserts every
+          observable effect (return value, stored data, HTTP status). Flag new code paths
+          without one.
+    - path: "agent/**"
+      instructions: |
+        - This is an eve agent (filesystem-first). Every tool that writes (charges, ledger) must
+          require the owner's approval (`approval: always()`).
+        - The chat is public and anonymous. Treat tool inputs and model output as untrusted.
+        - Groq's free tier allows 8K tokens per request and 200K per day: flag changes that grow
+          instructions or tool output without need.
+    - path: "src/core/auth/**"
+      instructions: |
+        - The eve auth walk runs in order: an entry returns a principal (admit), null (skip), or
+          throws (reject). Flag any entry that admits a caller it should only check, and any
+          change to the order that would put `none()` before another entry.
+    - path: "src/features/charges/**"
+      instructions: |
+        - Reconciliation must never mark a charge paid twice or by the wrong transfer: check the
+          exact amount and currency match, the created-before-received rule, and the paidBy
+          uniqueness. On-chain reads must stop at the `safe` block.
+    - path: "drizzle/*.sql"
+      instructions: |
+        - Migrations run against the production database. Flag anything that drops, renames or
+          rewrites existing data, or adds a NOT NULL column without a default.
+    - path: ".github/workflows/**"
+      instructions: |
+        - Workflows must declare least-privilege `permissions`, pin third-party actions to a
+          commit SHA, and never print secrets.
