@@ -1,7 +1,7 @@
 import { defineTool } from "eve/tools";
 import { always } from "eve/tools/approval";
 import { z } from "zod";
-import { DEFAULT_CURRENCY, formatMoney, fromDecimalString } from "../../src/core/money/money";
+import { DEFAULT_CURRENCY, formatMoney, fromDecimalString, isCurrency } from "../../src/core/money/money";
 import { chargesRuntime, shopCurrency } from "../../src/features/charges";
 
 export default defineTool({
@@ -39,7 +39,8 @@ export default defineTool({
     const requestId = `${ctx.session.id}:${ctx.session.turn.id}`;
     // Built on first call, not at import time, so a bad configuration fails the call, not the build.
     const charge = await chargesRuntime().feature.createCharge({ ...input, requestId });
-    const currency = input.currency ?? DEFAULT_CURRENCY;
+    // Compared in the currency the charge was created in, so both amounts use its precision.
+    const currency = isCurrency(charge.currency) ? charge.currency : DEFAULT_CURRENCY;
     // Another pending charge already had this amount, so the charge got extra cents to tell the
     // two payments apart: the owner did not ask for them, and the model explains them.
     const amountAdjusted =

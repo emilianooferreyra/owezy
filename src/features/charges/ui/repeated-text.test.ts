@@ -54,6 +54,10 @@ describe("repeatedTextParts", () => {
     expect([...repeatedTextParts([text(first), text(second)])]).toEqual([]);
   });
 
+  it("keeps texts that differ only in where words break", () => {
+    expect([...repeatedTextParts([text("Cobrale a Ana María."), text("Cobrale a AnaMaría.")])]).toEqual([]);
+  });
+
   it("keeps texts that differ in their digits", () => {
     expect([...repeatedTextParts([text("El importe es $11.500."), text("El importe es $11.501.")])]).toEqual([]);
   });

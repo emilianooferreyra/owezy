@@ -316,7 +316,7 @@ export function createChargesFeature(deps: {
       requestId: string;
       customer: string;
       currency?: Currency;
-    }): Promise<ChargeView & { entries: readonly string[] }> {
+    }): Promise<ChargeView & { entries: readonly string[]; amountAdjusted: boolean }> {
       const charge = chargeFromLedgerUseCase({
         ledger: ledgerOrFail(),
         charges: deps.charges,
@@ -324,7 +324,15 @@ export function createChargesFeature(deps: {
         createCharge,
       });
       const result = await charge(input);
-      return { ...toView(result.charge), created: result.created, entries: result.entries.map(({ id }) => id) };
+      // The entries' total is what the owner asked for. A charge for more got extra cents to keep
+      // its amount distinct from another pending charge.
+      const requested = result.entries.reduce((sum, entry) => sum + entry.amount.amount, 0n);
+      return {
+        ...toView(result.charge),
+        created: result.created,
+        entries: result.entries.map(({ id }) => id),
+        amountAdjusted: result.charge.amount.amount !== requested,
+      };
     },
 
     /** Fakes the payer's transfer, then runs the same reconciliation real transfers go through. */

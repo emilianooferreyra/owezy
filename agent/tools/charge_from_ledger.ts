@@ -37,8 +37,6 @@ export default defineTool({
   },
   // The charge card is the confirmation: eve ends the turn instead of calling the model again,
   // which could write it twice. Not when nothing was charged (the model tells the owner or asks
-  // which customer), nor when the amount has cents: the result does not say what the ledger
-  // asked for, and whole-unit entries only get cents when they were added to keep the amount
-  // distinct, which the model explains.
-  endsTurn: (output) => !("charged" in output) && !output.amount.includes("."),
+  // which customer), nor when cents were added to keep the amount distinct, which the model explains.
+  endsTurn: (output) => !("charged" in output) && !output.amountAdjusted,
 });

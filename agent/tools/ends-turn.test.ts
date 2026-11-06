@@ -87,6 +87,15 @@ describe("charge_from_ledger ends the turn", () => {
     expect(endsTurn).toBe(true);
   });
 
+  it("when the ledger entries already had cents: nothing was added, so there is nothing to explain", async () => {
+    await run(addToLedger, note("Juan Pérez", "30000.50"), "t1");
+
+    const { output, endsTurn } = await run(chargeFromLedger, { customer: "Juan", currency: "wARS" }, "t2");
+
+    expect(parseChargeView(output)).toMatchObject({ customer: "Juan Pérez", amount: "30000.5" });
+    expect(endsTurn).toBe(true);
+  });
+
   it("not when there is nothing to charge: the model tells the owner", async () => {
     const { output, endsTurn } = await run(chargeFromLedger, { customer: "Juan", currency: "wARS" }, "t1");
 
