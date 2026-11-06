@@ -1,8 +1,6 @@
 import { type AuthFn, ForbiddenError } from "eve/channels/auth";
 import type { DailyBudget } from "./daily-budget";
-
-/** The code the chat answers with once the day's budget is spent. The demo shows its own copy for it. */
-export const DAILY_BUDGET_EXHAUSTED = "daily_budget_exhausted";
+import { DAILY_BUDGET_EXHAUSTED } from "./daily-budget-exhausted";
 
 // Creating a session (POST /session) or sending a follow-up (POST /session/:id) are the requests
 // that start model calls. Streams, cancel and the other session commands spend no tokens.

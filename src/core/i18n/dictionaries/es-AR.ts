@@ -191,6 +191,7 @@ export const esAR = {
     subtitle: "Tu asistente de cobros",
     home: "Inicio",
     toolError: "No se pudo completar: {error}",
+    dailyLimit: "La demo llegó a su límite de hoy. Volvé a probar mañana.",
     thinking: "Pensando…",
     message: "Mensaje",
     placeholder: {

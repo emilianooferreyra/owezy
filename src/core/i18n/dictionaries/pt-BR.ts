@@ -190,6 +190,7 @@ export const ptBR = {
     subtitle: "Seu assistente de cobranças",
     home: "Início",
     toolError: "Não deu para concluir: {error}",
+    dailyLimit: "A demo chegou ao limite de hoje. Tente de novo amanhã.",
     thinking: "Pensando…",
     message: "Mensagem",
     placeholder: {

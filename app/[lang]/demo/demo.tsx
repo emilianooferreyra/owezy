@@ -13,6 +13,7 @@ import { InlineMarkdown } from "@/core/ui/inline-markdown";
 import { OwezyMark } from "@/core/ui/owezy-mark";
 import { useDismiss } from "@/core/ui/use-dismiss";
 import { Input } from "@/core/ui/input";
+import { isDailyBudgetExhausted } from "@/features/usage-budget/daily-budget-exhausted";
 import { WalletSection } from "@/features/wallet/ui";
 import {
   AR,
@@ -389,7 +390,11 @@ function OwnerChat({ shop }: { shop: Shop }) {
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> {copy.thinking}
           </p>
         )}
-        {agent.error && <p className="text-sm text-destructive">{agent.error.message}</p>}
+        {agent.error && (
+          <p className="text-sm text-destructive">
+            {isDailyBudgetExhausted(agent.error) ? copy.dailyLimit : agent.error.message}
+          </p>
+        )}
         <div ref={bottom} className="h-2 shrink-0" aria-hidden="true" />
       </div>
 

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const agent = vi.hoisted(() => ({
   status: "ready" as string,
   data: { messages: [] as unknown[], inputs: [] as unknown[] },
-  error: undefined,
+  error: undefined as (Error & { code?: string }) | undefined,
   send: (() => Promise.resolve()) as (message: string) => Promise<void>,
   respond: (() => Promise.resolve()) as (responses: unknown[]) => Promise<void>,
   /** What the demo passed to useEveAgent, to check what every turn carries. */
@@ -59,6 +59,7 @@ let ledgerStatus = 200;
 let activity: unknown[] = [];
 beforeEach(() => {
   agent.status = "ready";
+  agent.error = undefined;
   agent.send = vi.fn(() => Promise.resolve());
   agent.data.messages = [];
   agent.data.inputs = [];
@@ -321,6 +322,26 @@ describe("demo chat", () => {
 
     expect(within(chat()).getByText("C-0001").tagName).toBe("STRONG");
     expect(within(chat()).queryByText(/\*\*/)).toBeNull();
+  });
+
+  it("tells the owner the demo reached today's limit when the chat refuses the message, not the raw error", () => {
+    agent.status = "error";
+    agent.error = Object.assign(new Error("The demo reached today's model budget."), {
+      code: "daily_budget_exhausted",
+    });
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByText(/La demo llegó a su límite de hoy/)).toBeTruthy();
+    expect(within(chat()).queryByText(/model budget/)).toBeNull();
+    expect(within(chat()).queryByText("Pensando…")).toBeNull();
+  });
+
+  it("still shows any other chat error as it came", () => {
+    agent.status = "error";
+    agent.error = new Error("Network down");
+    render(<DemoScreen />);
+
+    expect(within(chat()).getByText("Network down")).toBeTruthy();
   });
 });
 
