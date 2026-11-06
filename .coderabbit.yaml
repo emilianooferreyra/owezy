@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-# CodeRabbit reviews every pull request to main. AGENTS.md and CLAUDE.md are read as code
+# CodeRabbit reviews every non-draft pull request to main. AGENTS.md and CLAUDE.md are read as code
 # guidelines by default; the instructions below add what is specific to this repository.
 language: en-US
 
