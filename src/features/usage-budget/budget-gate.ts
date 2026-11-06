@@ -2,9 +2,15 @@ import { type AuthFn, ForbiddenError } from "eve/channels/auth";
 import type { DailyBudget } from "./daily-budget";
 import { DAILY_BUDGET_EXHAUSTED } from "./daily-budget-exhausted";
 
-// Creating a session (POST /session) or sending a follow-up (POST /session/:id) are the requests
-// that start model calls. Streams, cancel and the other session commands spend no tokens.
-const MESSAGE_PATH = /\/session(\/[^/]+)?$/;
+// The requests that start model calls: creating a session (POST /session), a follow-up or an
+// approval answer (POST /session/:id), and compacting (POST /session/:id/compact), which summarizes
+// the chat with the model. Streams, cancel, clear and reset spend no tokens. The router ignores one
+// trailing slash, so the match does too.
+const MODEL_PATH = /\/session(\/[^/]+(\/compact)?)?$/;
+
+function spendsTokens(request: Request): boolean {
+  return request.method === "POST" && MODEL_PATH.test(new URL(request.url).pathname.replace(/\/+$/, ""));
+}
 
 /**
  * The first step of the chat's auth walk: rejects a new message once the day's model budget is
@@ -12,7 +18,7 @@ const MESSAGE_PATH = /\/session(\/[^/]+)?$/;
  */
 export function dailyBudgetGate(budget: () => DailyBudget): AuthFn<Request> {
   return async (request) => {
-    if (request.method !== "POST" || !MESSAGE_PATH.test(new URL(request.url).pathname)) {
+    if (!spendsTokens(request)) {
       return null;
     }
     if (await budget().isExhausted()) {

@@ -29,6 +29,9 @@ describe("dailyBudgetGate", () => {
   it.each([
     ["a new chat", "/eve/v1/session"],
     ["a follow-up message", "/eve/v1/session/ses_123"],
+    ["a new chat with a trailing slash", "/eve/v1/session/"],
+    ["a follow-up with a trailing slash", "/eve/v1/session/ses_123/"],
+    ["compacting a session, which summarizes it with the model", "/eve/v1/session/ses_123/compact"],
   ])("rejects %s with 403 daily_budget_exhausted once the budget is spent", async (_name, path) => {
     const budget = await spentBudget();
 
